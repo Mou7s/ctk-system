@@ -1,0 +1,41 @@
+/*
+ * 深色模式「原生 <table>」统一兜底（全项目）
+ *
+ * RevoGrid 明细表（报价明细 / 客户样品进度）的深色令牌在 revogrid-dark.css 里，
+ * 本文件只负责手写 <table>：
+ *  - 放在 @layer base：页面里显式写的 dark: 变体在 utilities 层、层级更靠后，
+ *    仍然覆盖这里，所以只对「没做深色适配」的表格生效（如 components/Crontab）。
+ *  - 表头/边框/底纹统一取项目调色板令牌（dark.css 的 --app-*），
+ *    保证整个项目表格在深色下是同一套颜色，而不是各自写死的灰。
+ *
+ * 加载顺序：tailwind.css 末尾 import，位于 dark-page-overrides.css、revogrid-dark.css 之后。
+ */
+@layer base {
+  html.dark table {
+    border-color: var(--app-border);
+    color: var(--app-text);
+  }
+
+  html.dark table thead th,
+  html.dark table thead td {
+    background-color: var(--app-table-header-bg);
+    color: var(--app-table-header-text);
+    border-color: var(--app-border);
+  }
+
+  html.dark table tbody th,
+  html.dark table tbody td,
+  html.dark table tfoot th,
+  html.dark table tfoot td {
+    border-color: var(--app-border);
+  }
+
+  html.dark table tfoot tr {
+    background-color: var(--app-panel-bg);
+    color: var(--app-text);
+  }
+
+  html.dark table tbody tr:hover {
+    background-color: var(--app-page-hover);
+  }
+}

@@ -1,0 +1,10 @@
+import { tkApi } from '@/plugins-legacy/tkApi'
+export const listSupplierAccess = (...args) => tkApi.listSupplierAccess(...args)
+export const getSupplierAccess = (...args) => tkApi.getSupplierAccess(...args)
+export const getSupplierAccessOptions = (...args) => tkApi.getSupplierAccessOptions(...args)
+export const getSupplierAccessSummary = (...args) => tkApi.getSupplierAccessSummary(...args)
+export const addSupplierAccess = (...args) => tkApi.addSupplierAccess(...args)
+export const updateSupplierAccess = (...args) => tkApi.updateSupplierAccess(...args)
+export const deleteSupplierAccess = (...args) => tkApi.deleteSupplierAccess(...args)
+export const signSupplierAccess = (...args) => tkApi.signSupplierAccess(...args)
+export const getAvlSuppliers = (...args) => tkApi.getAvlSuppliers(...args)

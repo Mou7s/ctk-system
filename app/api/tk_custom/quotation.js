@@ -1,0 +1,20 @@
+import { tkApi } from '@/plugins-legacy/tkApi'
+export const remindQuotation = (...args) => tkApi.remindQuotation(...args)
+
+export const listQuotations = (...args) => tkApi.listQuotations(...args)
+export const getQuotation = (...args) => tkApi.getQuotation(...args)
+export const searchQuotationOptions = (...args) => tkApi.searchQuotationOptions(...args)
+export const getQuotationHistoryPrices = (...args) => tkApi.getQuotationHistoryPrices(...args)
+export const createQuotation = (...args) => tkApi.createQuotation(...args)
+export const updateQuotation = (...args) => tkApi.updateQuotation(...args)
+export const uploadQuotation = (...args) => tkApi.uploadQuotation(...args)
+export const reviewQuotation = (...args) => tkApi.reviewQuotation(...args)
+export const submitQuotation = (...args) => tkApi.submitQuotation(...args)
+export const withdrawQuotation = (...args) => tkApi.withdrawQuotation(...args)
+export const deleteQuotation = (...args) => tkApi.deleteQuotation(...args)
+export const getQuotationAnalysis = (...args) => tkApi.getQuotationAnalysis(...args)
+export const getQuotationDownloadUrl = (...args) => tkApi.getQuotationDownloadUrl(...args)
+export const getQuotationAnalysisExportUrl = (...args) => tkApi.getQuotationAnalysisExportUrl(...args)
+
+export const checkQuotationPrices = (...args) => tkApi.checkQuotationPrices(...args)
+export const checkQuotationEndUserConflict = (...args) => tkApi.checkQuotationEndUserConflict(...args)

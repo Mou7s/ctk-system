@@ -1,0 +1,83 @@
+/* RevoGrid 深色模式：表格、行号列、单元格编辑器与单位下拉弹层
+ * 库自带 token 全部走 --rg-theme-*（表格内）与 --rv-dropdown-*（下拉弹层），
+ * 默认值是浅色，页面只传 theme="default"，所以深色下会渲染成白色表格。
+ * 这里在 html.dark 下把 token 换成应用深色调色板，选择器带 html.dark 前缀，
+ * 优先级高于库注入的 revo-grid[data-rg-theme-scheme=light]。
+ */
+html.dark revo-grid {
+  color-scheme: dark;
+
+  --rg-theme-background: var(--app-surface);
+  --rg-theme-foreground: var(--app-text);
+  --rg-theme-text: var(--app-text);
+  --rg-theme-divider: var(--app-border);
+  --rg-theme-border: var(--app-border);
+  --rg-theme-shadow: var(--app-shadow);
+  --rg-theme-header-bg: var(--app-table-header-bg);
+  --rg-theme-header-color: var(--app-table-header-text);
+  --rg-theme-header-border: var(--app-border);
+  --rg-theme-header-hover-bg: var(--app-page-hover);
+  --rg-theme-header-focused-bg: var(--app-page-hover);
+  --rg-theme-cell-border: #2b2e33;
+  --rg-theme-focused-bg: rgba(255, 255, 255, 0.06);
+  --rg-theme-row-hover: var(--app-page-hover);
+  --rg-theme-row-headers-bg: var(--app-table-header-bg);
+  --rg-theme-row-headers-color: var(--app-text-secondary);
+  --rg-theme-cell-disabled-bg: rgba(255, 255, 255, 0.05);
+  --rg-theme-selection-border: #3b82f6;
+  --rg-theme-selection-bg: rgba(59, 130, 246, 0.12);
+  --rg-theme-autofill-handle-bg: #3b82f6;
+  --rg-theme-autofill-handle-border: var(--app-surface);
+  --rg-theme-range-handle-bg: rgba(255, 255, 255, 0.32);
+  --rg-theme-temporary-range-border: #f59e0b;
+  --rg-theme-temporary-selection-border: var(--app-text-secondary);
+  --rg-theme-header-resize-hover: #3b82f6;
+
+  /* 筛选面板（TkSampleProgressGrid 列筛选） */
+  --rg-theme-filter-panel-bg: var(--app-surface);
+  --rg-theme-filter-panel-border: var(--app-border);
+  --rg-theme-filter-panel-shadow: rgba(0, 0, 0, 0.5);
+  --rg-theme-filter-panel-input-bg: var(--app-bg);
+  --rg-theme-filter-panel-divider: var(--app-border);
+  --rg-theme-filter-panel-select-border: var(--app-border);
+  --rg-theme-filter-panel-select-border-hover: var(--app-link-color);
+  --rg-theme-filter-panel-text: var(--app-text);
+  --rg-theme-filter-panel-muted-text: var(--app-text-secondary);
+  --rg-theme-filter-panel-focus-ring: 0 0 1px 3px rgba(59, 130, 246, 0.7);
+  --rg-theme-filter-panel-icon: var(--app-text-secondary);
+  --rg-theme-filter-panel-icon-active: var(--app-text);
+}
+
+/* 单元格编辑器：库只给了背景色，文字色依赖 UA 默认值，显式指定避免深底深字 */
+html.dark revo-grid revogr-edit input,
+html.dark revo-grid revogr-edit .filter-box {
+  color: var(--app-text);
+  background-color: transparent;
+}
+
+html.dark revo-grid revo-dropdown fieldset {
+  border-color: var(--app-border);
+}
+
+html.dark revo-grid revo-dropdown.active fieldset {
+  border-color: var(--app-link-color);
+}
+
+html.dark revo-grid revo-dropdown.active label {
+  color: var(--app-link-color);
+}
+
+/* 单位下拉弹层挂在 .quotation-detail-modal-content / body 上，不在 revo-grid 内，
+ * 需要单独给 --rv-dropdown-* 变量 */
+html.dark .revo-dropdown-list,
+html.dark revo-grid {
+  --rv-dropdown-bg: var(--app-surface);
+  --rv-dropdown-color: var(--app-text);
+  --rv-dropdown-border: var(--app-border);
+  --rv-dropdown-input-bg: var(--app-bg);
+  --rv-dropdown-hover: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .revo-dropdown-list .dropdown-inner {
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}

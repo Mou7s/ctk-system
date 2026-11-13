@@ -1,0 +1,10 @@
+import { tkApi } from '@/plugins-legacy/tkApi';
+export const listCustomerCards = params => tkApi.listCustomerCards(params);
+export const getCustomerCard = id => tkApi.getCustomerCard(id);
+export const getCustomerCardPhoto = id => tkApi.getCustomerCardPhoto(id);
+export const checkCustomerCard = data => tkApi.checkCustomerCard(data);
+export const createCustomerCard = data => tkApi.createCustomerCard(data);
+export const removeCustomerCard = id => tkApi.removeCustomerCard(id);
+export const reviewCustomerCard = data => tkApi.reviewCustomerCard(data);
+export const addCustomerFollowup = data => tkApi.addCustomerFollowup(data);
+export const recognizeCustomerCard = data => tkApi.recognizeCustomerCard(data);

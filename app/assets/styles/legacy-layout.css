@@ -1,0 +1,53 @@
+/**
+ * 通用css样式布局处理（清理版 - 已移除 Element Plus 类）
+ */
+
+ /** 基础通用
+     ★ 必须放进 @layer base：Tailwind v4 里未分层的规则会压过页面上的 utilities ——
+     这条 h1..h6 重置（font-weight 500 / line-height 1.1 / color: inherit）不放进 base，
+     页面写 font-semibold / text-highlighted / leading-* 就全部无效（标题恒为 500 字重、
+     颜色继承自 --app-text）。放进 base 后仍是全局默认，但页面可以覆盖。 **/
+@layer base {
+  .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.1;
+    color: inherit;
+  }
+}
+
+/** 表单布局 **/
+/** 表格布局 **/
+.pagination-container {
+  position: relative;
+  height: 25px;
+  margin-bottom: 10px;
+  margin-top: 15px;
+  padding: 10px 20px !important;
+}
+
+/* tree border */
+.card-box {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-bottom: 10px;
+}
+
+/* text color */
+.text-primary { color: inherit; }
+.text-success { color: #1c84c6; }
+.text-info { color: #23c6c8; }
+.text-warning { color: #f8ac59; }
+.text-danger { color: #ed5565; }
+/** .text-muted 已删除：与 Nuxt UI 语义类 .text-muted 同名，未分层会压过它（页面写 text-muted
+    拿到的是 #64748b 而不是 #71717b）。要旧色请直接用 var(--app-page-text-muted)。 **/
+
+/* image */
+.img-circle { border-radius: 50%; }
+.img-lg { width: 120px; height: 120px; }
+
+/* 拖拽列样式 */
+/* 表格右侧工具栏样式 */
+.top-right-btn {
+  margin-left: auto;
+}

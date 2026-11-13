@@ -1,0 +1,64 @@
+﻿@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* 业务代码源（apps/web/src/...），用于扫出页面里实际写出来的类 */
+@source "../../**/*.{vue,js}";
+
+/* workspace 共享 UI 组件 */
+@source "../../../packages/ui/src/**/*.vue";
+
+/* Nuxt 自身项目（apps/nuxt-web/...）下页面/组件/插件等 */
+@source "../../../../nuxt-web/pages/**/*.{vue,ts,js}";
+@source "../../../../nuxt-web/components/**/*.{vue,ts,js}";
+@source "../../../../nuxt-web/plugins/**/*.{vue,ts,js}";
+@source "../../../../nuxt-web/composables/**/*.{ts,js}";
+@source "../../../../nuxt-web/middleware/**/*.{ts,js}";
+@source "../../../../nuxt-web/layouts/**/*.{vue,ts,js}";
+@source "../../../../nuxt-web/.nuxt/ui/**/*.ts";
+@source "../../../../nuxt-web/.nuxt/components.d.ts";
+@source "../../../../nuxt-web/.nuxt/imports.d.ts";
+
+/* @iconify-json/lucide：i-lucide:* iconify 类的解析 */
+@source "../../../../node_modules/@iconify-json/lucide/icons.json";
+
+@variant dark (&:where(html.dark, html.dark *));
+
+@theme {
+  --spacing-sidebar: 200px;
+  --spacing-sidebar-collapsed: 54px;
+  --spacing-navbar: 50px;
+  --spacing-tags: 31px;
+
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-text: var(--app-text);
+  --color-app-text-secondary: var(--app-text-secondary);
+  --color-app-border: var(--app-border);
+  --color-app-hover: var(--app-hover-overlay);
+  --color-app-link: var(--app-link-color);
+  --color-app-link-hover: var(--app-link-hover-color);
+  --color-app-muted: var(--app-page-text-muted);
+  --color-app-panel: var(--app-panel-bg);
+
+  --shadow-app: 0 1px 4px var(--app-shadow);
+  --shadow-sidebar: 2px 0 6px var(--app-sidebar-shadow);
+
+  /* Dashboard 壳层底色（侧栏 / 顶栏共用）：
+     Nuxt UI 模板用的是 bg-elevated/25 —— 它是半透明，会合成到下层画布上。
+     本项目的画布是 --app-bg(#f0f2f5) 灰底，合成出来偏暗(#F0F3F6)，
+     所以这里直接写成模板那条公式的定值：elevated 25% 叠在 --ui-bg 上（浅色=#FCFCFC）。 */
+  --color-app-shell: color-mix(in srgb, var(--ui-bg-elevated) 25%, var(--ui-bg));
+}
+
+@import "./transition.css";
+@import "./sidebar.css";
+@import "./noto-sans-sc.css";
+
+@import "./legacy-layout.css";
+@import "./dark.css";
+@import "./global.css";
+@import "./dark-page-overrides.css";
+@import "./revogrid-dark.css";
+@import "./dark-tables.css";
+
+
