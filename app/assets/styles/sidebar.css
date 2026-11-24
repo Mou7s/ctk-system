@@ -1,0 +1,16 @@
+:is(#__nuxt, #app) .main-container {
+  min-height: 100%;
+  transition: margin-left 0.2s ease-out;
+  background-color: var(--app-bg);
+  position: relative;
+}
+
+/* UNavigationMenu 按钮在侧栏里要能完整显示文字、不能被 min-w-0 压扁 */
+.app-sidebar-menu [data-slot="link"] {
+  width: 100%;
+}
+.app-sidebar-menu [data-slot="linkLabel"],
+.app-sidebar-menu [data-slot="linkLeadingIcon"],
+.app-sidebar-menu [data-slot="linkTrailingIcon"] {
+  flex-shrink: 0;
+}

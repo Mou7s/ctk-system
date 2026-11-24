@@ -1,0 +1,16 @@
+{
+  "deployMode": "docker",
+  "server": "192.0.2.182",
+  "user": "deploy",
+  "sshPort": "22",
+  "remoteOs": "linux",
+  "remoteAppDir": "/srv/ctk-system/app",
+  "dockerEnvFile": ".env.docker",
+  "dockerProfiles": ["local-db"],
+  "dockerBuildService": "app",
+  "appContainerName": "ctk-system-app",
+  "webContainerName": "ctk-caddy",
+  "dbContainerName": "ctk-mysql",
+  "healthUrl": "http://127.0.0.1/app-version",
+  "guardAudioPlayback": true
+}

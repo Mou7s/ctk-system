@@ -1,0 +1,54 @@
+{
+	auto_https off
+}
+
+(app_routes) {
+	encode zstd gzip
+	request_body {
+		max_size 50MB
+	}
+
+	handle_path /profile/* {
+		root * /data/TKServerFiles/uploadPath
+		file_server
+	}
+
+	handle /prod-api/login {
+		reverse_proxy app:3100
+	}
+
+	handle /prod-api/captchaImage {
+		reverse_proxy app:3100
+	}
+
+	handle /prod-api/getInfo {
+		reverse_proxy app:3100
+	}
+
+	handle /prod-api/getRouters {
+		reverse_proxy app:3100
+	}
+
+	handle /prod-api/logout {
+		reverse_proxy app:3100
+	}
+
+	handle /prod-api/* {
+		reverse_proxy app:3100 {
+			header_up X-Real-IP {remote_host}
+			header_up REMOTE-HOST {remote_host}
+		}
+	}
+
+	handle /api/_nuxt_icon/* {
+		reverse_proxy app:3100
+	}
+
+	handle {
+		reverse_proxy app:3100
+	}
+}
+
+:80 {
+	import app_routes
+}

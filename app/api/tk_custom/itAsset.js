@@ -1,0 +1,15 @@
+import { tkApi } from '@/plugins-legacy/tkApi'
+
+export const listItAssets = (...args) => tkApi.listItAssets(...args)
+export const getItAsset = (...args) => tkApi.getItAsset(...args)
+export const getItAssetSummary = (...args) => tkApi.getItAssetSummary(...args)
+export const getItAssetOptions = (...args) => tkApi.getItAssetOptions(...args)
+export const addItAsset = (...args) => tkApi.addItAsset(...args)
+export const updateItAsset = (...args) => tkApi.updateItAsset(...args)
+export const deleteItAssets = (...args) => tkApi.deleteItAssets(...args)
+export const markItAssetsPrinted = (...args) => tkApi.markItAssetsPrinted(...args)
+export const importItAssets = (...args) => tkApi.importItAssets(...args)
+export const exportItAssets = (...args) => tkApi.exportItAssets(...args)
+export const downloadItAssetTemplate = (...args) => tkApi.downloadItAssetTemplate(...args)
+export const previewItAssetLvDunSync = (...args) => tkApi.previewItAssetLvDunSync(...args)
+export const applyItAssetLvDunSync = (...args) => tkApi.applyItAssetLvDunSync(...args)

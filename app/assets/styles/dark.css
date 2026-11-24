@@ -1,0 +1,166 @@
+:root {
+  color-scheme: light;
+  --app-bg: #f0f2f5;
+  --app-surface: #ffffff;
+  --app-text: #303133;
+  --app-text-secondary: #5a5e66;
+  --app-border: #e4e7ed;
+  --app-shadow: rgba(0, 21, 41, 0.08);
+  --app-hover-overlay: rgba(0, 0, 0, 0.025);
+  --app-icon-active-color: #e6a23c;
+  --app-scrollbar-track: #f1f1f1;
+  --app-scrollbar-thumb: #c0c0c0;
+  --app-contextmenu-bg: #ffffff;
+  --app-contextmenu-text: #333333;
+  --app-contextmenu-hover: #eeeeee;
+  --app-sidebar-shadow: rgba(0, 21, 41, 0.35);
+  --app-subnavbar-bg: #20b6f9;
+  --app-subnavbar-text: #ffffff;
+  --app-subnavbar-muted-bg: #d0d0d0;
+  --app-link-color: #337ab7;
+  --app-link-hover-color: #2096ff;
+  --app-table-header-bg: #f8f8f9;
+  --app-table-header-text: #515a6e;
+  --app-panel-bg: #ffffff;
+  --app-page-accent: #eff6ff;
+  --app-page-accent-border: #bfdbfe;
+  --app-page-text-muted: #64748b;
+  --app-page-hover: #f8fafc;
+}
+
+/* 显式浅色覆盖：当 html.light 时与 :root 一致，确保 color-scheme 正确 */
+html.light {
+  color-scheme: light;
+}
+
+/* 无 JS 兜底：系统偏好浅色时直接用浅色变量（与 :root 同步） */
+@media (prefers-color-scheme: light) {
+  :root:not(.dark):not(.light) {
+    color-scheme: light;
+  }
+}
+
+html.dark {
+  color-scheme: dark;
+  --app-bg: #0f1114;
+  --app-surface: #1b1d21;
+  --app-text: #e5eaf3;
+  --app-text-secondary: #a3a6ad;
+  --app-border: #363637;
+  --app-shadow: rgba(0, 0, 0, 0.45);
+  --app-hover-overlay: rgba(255, 255, 255, 0.06);
+  --app-icon-active-color: #f2c94c;
+  --app-scrollbar-track: #1d1e1f;
+  --app-scrollbar-thumb: #4c4d4f;
+  --app-contextmenu-bg: #1b1d21;
+  --app-contextmenu-text: #e5eaf3;
+  --app-contextmenu-hover: #363637;
+  --app-sidebar-shadow: rgba(0, 0, 0, 0.35);
+  --app-subnavbar-bg: #1a3a52;
+  --app-subnavbar-text: #e5eaf3;
+  --app-subnavbar-muted-bg: #3a3a3a;
+  --app-link-color: #79bbff;
+  --app-link-hover-color: #a0cfff;
+  --app-table-header-bg: #2b2b2c;
+  --app-table-header-text: #cfd3dc;
+  --app-panel-bg: #1b1d21;
+  --app-page-accent: #1e293b;
+  --app-page-accent-border: #334155;
+  --app-page-text-muted: #a3a6ad;
+  --app-page-hover: #262727;
+}
+
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    fill 0.35s ease !important;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+html body {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--app-scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--app-scrollbar-thumb);
+    border-radius: 3px;
+  }
+}
+
+/* dark mode base overrides */
+html.dark {
+  #app {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+  }
+
+}
+
+/* ========== Business page dark mode overrides ========== */
+
+html.dark {
+  /* 外发上锡导出 */
+  .wf-export-page {
+    --esql-success: #4ade80;
+    --esql-danger: #f87171;
+  }
+
+  /* 金蝶快捷指令：标签与状态色暗色适配 */
+  .kingdee-maintenance-page {
+    --esql-tag-normal-bg: color-mix(in srgb, #3b82f6 16%, var(--app-surface));
+    --esql-tag-normal-text: #60a5fa;
+    --esql-tag-danger-bg: color-mix(in srgb, #ef4444 14%, var(--app-surface));
+    --esql-tag-danger-text: #f87171;
+    --esql-tag-slow-bg: color-mix(in srgb, #f59e0b 14%, var(--app-surface));
+    --esql-tag-slow-text: #fbbf24;
+    --esql-success: #4ade80;
+    --esql-danger: #f87171;
+  }
+
+  /* 生产进度查询 */
+  .mo-page {
+    --mo-header-bg: #34383f;
+    --mo-header-text: #dce3ec;
+    --mo-process-active-bg: color-mix(in srgb, #3b82f6 14%, var(--app-surface));
+    --mo-process-active-border: color-mix(in srgb, #3b82f6 36%, var(--app-border));
+    --mo-process-active-text: #93c5fd;
+    --mo-process-active-subtext: #60a5fa;
+    --mo-process-active-bar: #3b82f6;
+    --mo-metric-qualified: #60a5fa;
+    --mo-metric-unqualified: #f87171;
+    --mo-metric-yield: #93c5fd;
+  }
+
+  /* 车间半成品在制 */
+  .wip-page {
+    --wip-accent: #2dd4bf;
+    --wip-accent-strong: #5eead4;
+    --wip-accent-label: #99f6e4;
+    --wip-banner-bg: linear-gradient(
+      135deg,
+      color-mix(in srgb, #14b8a6 14%, var(--app-surface)) 0%,
+      color-mix(in srgb, #0ea5e9 10%, var(--app-surface)) 100%
+    );
+    --wip-banner-border: color-mix(in srgb, #2dd4bf 30%, var(--app-border));
+    --wip-banner-hint: var(--app-page-text-muted);
+    --wip-nested-bg: var(--app-page-hover);
+  }
+
+}
+

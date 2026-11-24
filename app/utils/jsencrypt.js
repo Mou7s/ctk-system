@@ -1,0 +1,20 @@
+import JSEncrypt from 'jsencrypt'
+
+// 仅用于登录页“记住密码”本地 Cookie 混淆的临时示例密钥对；生产环境部署前请替换为自有密钥。
+const demoPublicKey =
+  'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC6xedDTdfN/wO4uu0u59shydatCq0XQSS3qH/xP6k0vROpJzYD9Qdf9w2/Pz7cZ7aZwSRa9d4359WPqD05MYP9qNtZqu+OmT5QBIK7TElHW0yWdWpSxlJk2lbuFQBIEg9hkCjHqkc8KsEO14zhT3+281Zz0gZuYDE1CI6aVy9VoQIDAQAB'
+
+const demoPrivateKey =
+  'MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBALrF50NN183/A7i67S7n2yHJ1q0KrRdBJLeof/E/qTS9E6knNgP1B1/3Db8/PtxntpnBJFr13jfn1Y+oPTkxg/2o21mq746ZPlAEgrtMSUdbTJZ1alLGUmTaVu4VAEgSD2GQKMeqRzwqwQ7XjOFPf7bzVnPSBm5gMTUIjppXL1WhAgMBAAECgYAUl4QnSfpMhlypLca/oKVqxL+L5Xzu7uo263drqDqmC2CTCjUs24N8I5da6gSqtS6PJhm1g50D6eYESCaz2w8zpHa/JsVnreWP40p9pDUtedk9wdUWjvwTDSNbb7qiKM1WcSSZ7SgraiASCV5RodXgyAXEolY+/a7+VUGepqR1iQJBAOXyEsGevlPyGCpp7vYkgWuOeVJo5n/k4FmY+cJh20PDdA/Za6l9JAnB9hdqnTXcqBRRERFCvb7LqNPM1Q/wDyUCQQDP74tF6QFUperC5PvuBWSynjkWpVycyK2KhiG0ojhRh5nehFw98DboPO8j217ToHMo1n0OXEsbqpmtqeloXtHNAkB8rfArmfZbMAaYYM4YGp0uA5eW7pgkuqZHDqJGGqc4K+9vdJVi1h7HR6s28TEC9n0QXxBhCo41uNn21balKKYdAkEAy+gA8IaEyoiFxacdMhVR4SLtorp4LjtQivXr2aH2jmTmS+IKPqbwgR839zapL+g45cQoEEwLT08lsrpbbAEHxQJBAMDO1rWpEBVGnVR/+FS5BB+21JTrqFyW+YcAWQhpod0rkQeqBu5RQPtWnh2PLW9dZvb3gwQ4dxqFjbkXI1xKqEA='
+
+export function encrypt(txt) {
+  const encryptor = new JSEncrypt()
+  encryptor.setPublicKey(demoPublicKey)
+  return encryptor.encrypt(txt)
+}
+
+export function decrypt(txt) {
+  const encryptor = new JSEncrypt()
+  encryptor.setPrivateKey(demoPrivateKey)
+  return encryptor.decrypt(txt)
+}

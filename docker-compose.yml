@@ -1,0 +1,101 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: ctk-mysql
+    profiles: ["local-db"]
+    restart: unless-stopped
+    command:
+      - --lower-case-table-names=1
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --max-allowed-packet=64M
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
+      MYSQL_DATABASE: ${NUXT_MYSQL_DATABASE:-wfs}
+    ports:
+      - "${MYSQL_BIND_HOST:-127.0.0.1}:3306:3306"
+    volumes:
+      - "${HOST_MYSQL_DATA_DIR:-/srv/ctk-system/mysql-data}:/var/lib/mysql"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ctk-system:latest
+    container_name: ctk-system-app
+    user: "1000:1000"
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      NODE_ENV: production
+      NITRO_PRESET: bun
+      NITRO_HOST: 0.0.0.0
+      NITRO_PORT: 3100
+      TZ: Asia/Shanghai
+      NUXT_PROFILE_PATH: /data/TKServerFiles/uploadPath
+      NUXT_JUKEBOX_ENGINE_MODE: embedded
+      NUXT_JUKEBOX_ENGINE_ENABLED: "1"
+      NUXT_JUKEBOX_MEDIA_BACKUP_PATH: /data/jukebox-media
+      NUXT_JUKEBOX_STATE_PATH: /data/jukebox-state/schedule_state.json
+      NUXT_JUKEBOX_FFPROBE_PATH: ffprobe
+      NUXT_JUKEBOX_MPV_PATH: mpv
+      NUXT_JUKEBOX_MPV_IPC_PATH: /tmp/mpv-ipc
+      NUXT_JUKEBOX_AUDIO_UID: "1000"
+      NUXT_JUKEBOX_AUDIO_GID: "1000"
+      PULSE_SERVER: unix:/run/user/1000/pulse/native
+      NUXT_LVDUN_SSH_HOST: ${NUXT_LVDUN_SSH_HOST:-}
+      NUXT_LVDUN_SSH_PORT: ${NUXT_LVDUN_SSH_PORT:-22}
+      NUXT_LVDUN_SSH_USER: ${NUXT_LVDUN_SSH_USER:-administrator}
+      NUXT_LVDUN_SSH_KEY_PATH: ${NUXT_LVDUN_SSH_KEY_PATH:-/data/ssh/lvdun_id_ed25519}
+      # 显式清空代理环境变量，避免宿主机代理干扰金蝶/SQL Server/考勤库内网访问
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - "${HOST_TKSERVER_FILES_DIR:-/srv/TKServerFiles}:/data/TKServerFiles"
+      - "${HOST_JUKEBOX_BACKUP_DIR:-/srv/ctk-system/jukebox-media}:/data/jukebox-media"
+      - "${HOST_JUKEBOX_STATE_DIR:-/srv/ctk-system/jukebox-state}:/data/jukebox-state"
+      - "${HOST_PULSE_SOCKET_DIR:-/run/user/1000/pulse}:/run/user/1000/pulse"
+      - "${HOST_SSH_DIR:-/srv/ctk-system/ssh}:/data/ssh:ro"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3100/app-version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ctk-caddy
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - "${HOST_TKSERVER_FILES_DIR:-/srv/TKServerFiles}/uploadPath:/data/TKServerFiles/uploadPath:ro"
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:

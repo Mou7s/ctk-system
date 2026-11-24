@@ -1,0 +1,59 @@
+/* Loaded last via App.vue — high-specificity dark mode fixes for page-level scoped styles.
+   2026-09-21：清掉 Element Plus 时代的选择器（.el-* 已随 element-plus 依赖一并移除，永远匹配不到）
+   以及 0 引用的旧时代卡片类名，只保留仍被 app/ 引用的那些。 */
+html.dark {
+  .app-main,
+  .app-container {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+  }
+
+  /* Common page shells */
+  .app-main [class$="-page"],
+  .app-main [class*="page-"] {
+    color: var(--app-text);
+  }
+
+  /* Shared card / panel patterns across tk_custom pages */
+  .app-main {
+    .table-card,
+    .export-card,
+    .preview-card,
+    .op-card,
+    .history-card,
+    .history-section,
+    .table-container-premium,
+    .search-form-premium {
+      border-color: var(--app-border);
+      background-color: var(--app-surface) !important;
+      color: var(--app-text);
+    }
+
+    .page-title,
+    .card-header,
+    .section-title {
+      color: var(--app-text) !important;
+    }
+
+    .page-desc,
+    .field-label {
+      color: var(--app-page-text-muted) !important;
+    }
+
+    .qty-cell {
+      color: var(--app-link-color);
+    }
+
+    .wip-page .qty-cell,
+    .wip-page .metric-pill strong {
+      color: var(--wip-accent-strong);
+    }
+
+    .pagination-container {
+      background: transparent;
+    }
+  }
+
+  /* 工作台首页不再在这里兜底色：页面自己用 dark:bg-[var(--app-bg)] 声明深色画布，
+     避免「页面类名 + 遗留规则」两份真相（那条未分层规则会盖掉页面的 Tailwind 类）。 */
+}
