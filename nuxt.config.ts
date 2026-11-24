@@ -126,6 +126,7 @@ export default defineNuxtConfig({
       brandSubtitle: process.env.NUXT_PUBLIC_BRAND_SUBTITLE || "企业运营协同平台",
       brandMark: process.env.NUXT_PUBLIC_BRAND_MARK || "EA",
       brandFooter: process.env.NUXT_PUBLIC_BRAND_FOOTER || "Copyright © 2026",
+      companyName: process.env.NUXT_PUBLIC_COMPANY_NAME || process.env.COMPANY_DISPLAY_NAME || "示例企业有限公司",
       demoTitle: process.env.NUXT_PUBLIC_DEMO_TITLE || "制造业管理系统",
       demoMode: ["1", "true", "yes", "on"].includes(String(process.env.NUXT_DEMO_MODE || "").toLowerCase()),
       appBaseApi: process.env.NUXT_PUBLIC_APP_BASE_API || process.env.VITE_APP_BASE_API || fileEnv.VITE_APP_BASE_API || "/prod-api",

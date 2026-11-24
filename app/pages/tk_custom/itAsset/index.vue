@@ -332,7 +332,7 @@
                   class="flex items-center justify-between gap-1.5 border-b-[1.5px] border-black pb-1 mb-1 shrink-0"
                 >
                   <span class="text-[12px] font-bold text-black truncate">
-                    {{ labelPrefs.companyTitle || IT_ASSET_LABEL_SPEC.defaultCompanyTitle }}
+                    {{ labelPrefs.companyTitle || defaultCompanyTitle }}
                   </span>
                   <span class="text-[9.5px] font-bold text-black border border-black px-1 py-0.5 leading-none whitespace-nowrap shrink-0">
                     {{ labelPrefs.badgeText || IT_ASSET_LABEL_SPEC.defaultBadgeText }}
@@ -452,7 +452,7 @@
             </div>
             <div v-if="normalizedTopReserveMm === 0" class="grid grid-cols-12 items-center gap-2">
               <span class="col-span-4 text-gray-500 dark:text-gray-400">公司抬头</span>
-              <UInput v-model="labelPrefs.companyTitle" size="xs" class="col-span-8" placeholder="示例企业有限公司" />
+              <UInput v-model="labelPrefs.companyTitle" size="xs" class="col-span-8" :placeholder="defaultCompanyTitle" />
             </div>
             <div class="grid grid-cols-12 items-center gap-2">
               <span class="col-span-4 text-gray-500 dark:text-gray-400">徽标文案</span>
@@ -1119,8 +1119,13 @@ const previewFields = computed(() => formatItAssetLabelFields(previewTarget.valu
 const previewLabelRows = computed(() => buildItAssetLabelRows(previewTarget.value || {}))
 const previewHardwareSummary = computed(() => formatItAssetHardwareSummary(previewTarget.value || {}))
 
+const runtimeConfig = useRuntimeConfig()
+const defaultCompanyTitle = computed(
+  () => String(runtimeConfig.public?.companyName || '').trim() || IT_ASSET_LABEL_SPEC.defaultCompanyTitle,
+)
+
 const labelPrefs = ref({
-  companyTitle: IT_ASSET_LABEL_SPEC.defaultCompanyTitle,
+  companyTitle: defaultCompanyTitle.value,
   badgeText: IT_ASSET_LABEL_SPEC.defaultBadgeText,
   qrMode: 'asset_no',
   topReserveMm: IT_ASSET_LABEL_SPEC.defaultTopReserveMm,
@@ -1709,7 +1714,7 @@ onMounted(() => {
       const parsed = JSON.parse(saved)
       if (parsed && typeof parsed === 'object') {
         labelPrefs.value = {
-          companyTitle: parsed.companyTitle || IT_ASSET_LABEL_SPEC.defaultCompanyTitle,
+          companyTitle: parsed.companyTitle || defaultCompanyTitle.value,
           badgeText: parsed.badgeText || IT_ASSET_LABEL_SPEC.defaultBadgeText,
           qrMode: parsed.qrMode === 'summary' ? 'summary' : 'asset_no',
           topReserveMm: normalizeItAssetTopReserveMm(parsed.topReserveMm),
