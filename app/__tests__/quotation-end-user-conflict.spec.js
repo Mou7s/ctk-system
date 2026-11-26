@@ -130,7 +130,7 @@ describe('外贸报价单终端客户冲突匹配规则与接口', () => {
       state.pool.query.mockReset().mockResolvedValue([state.rows, []])
     })
 
-    it('普通业务员调用时只返回冲突标志与匹配名，不暴露其他业务员姓名和单号', async () => {
+    it('普通业务员调用时返回冲突标志、匹配名与业务员姓名，不暴露对方单号和单据明细', async () => {
       state.authenticated.session = {
         userId: 7,
         deptId: 1,
@@ -146,8 +146,59 @@ describe('外贸报价单终端客户冲突匹配规则与接口', () => {
         hasConflict: true,
         conflictCount: 1,
         matchedEndUsers: ['Vvdn Technologies Private Limited'],
+        conflictSalespersons: ['业务员乙'],
         conflicts: [],
       })
+    })
+
+    it('同一终端客户有多份冲突单据时，conflictSalespersons 按顺序去重', async () => {
+      state.rows = [
+        {
+          id: 88,
+          quoteNo: 'BJ20261015001',
+          headerEndUser: 'Vvdn Technologies Private Limited',
+          lineEndUser: '',
+          salespersonId: 9,
+          salespersonName: '业务员乙',
+          quoteDate: '2026-10-15',
+          status: 'APPROVED',
+        },
+        {
+          id: 90,
+          quoteNo: 'BJ20261018003',
+          headerEndUser: 'VVDN',
+          lineEndUser: '',
+          salespersonId: 9,
+          salespersonName: '业务员乙',
+          quoteDate: '2026-10-18',
+          status: 'PENDING_SECOND',
+        },
+        {
+          id: 91,
+          quoteNo: 'BJ20261019004',
+          headerEndUser: 'VVDN Tech',
+          lineEndUser: '',
+          salespersonId: 10,
+          salespersonName: '业务员丙',
+          quoteDate: '2026-10-19',
+          status: 'APPROVED',
+        },
+      ]
+      state.pool.query.mockReset().mockResolvedValue([state.rows, []])
+      state.authenticated.session = {
+        userId: 7,
+        deptId: 1,
+        userName: 'salesA',
+        user: { userId: 7, userName: 'salesA', nickName: '业务员甲' },
+        roles: [],
+        permissions: ['tk_custom:quotation:upload'],
+      }
+
+      const res = await checkQuotationEndUserConflict({})
+      expect(res.code).toBe(200)
+      expect(res.data.conflictCount).toBe(3)
+      expect(res.data.conflictSalespersons).toEqual(['业务员乙', '业务员丙'])
+      expect(res.data.conflicts).toEqual([])
     })
 
     it('二审/终审审核人调用时返回完整冲突单据详情（含业务员姓名、单号、状态）', async () => {
@@ -164,6 +215,7 @@ describe('外贸报价单终端客户冲突匹配规则与接口', () => {
       expect(res.code).toBe(200)
       expect(res.data.hasConflict).toBe(true)
       expect(res.data.conflictCount).toBe(1)
+      expect(res.data.conflictSalespersons).toEqual(['业务员乙'])
       expect(res.data.conflicts).toEqual([
         {
           id: 88,

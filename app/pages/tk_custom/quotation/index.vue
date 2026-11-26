@@ -365,8 +365,8 @@
                     aria-live="polite"
                   >
                     <UIcon name="i-lucide-triangle-alert" class="size-3.5 shrink-0" />
-                    <span class="truncate" :title="`检测到已有其他业务员报过该终端客户（匹配：${formEndUserConflict.matchedEndUsers.join('、') || formData.endUser}）`">
-                      已有其他业务员报过该终端客户
+                    <span class="truncate" :title="`检测到已有 ${formatConflictSalespersons(formEndUserConflict.conflictSalespersons, Infinity) || '其他业务员'} 报过该终端客户（匹配：${formEndUserConflict.matchedEndUsers.join('、') || formData.endUser}）`">
+                      已有 {{ formatConflictSalespersons(formEndUserConflict.conflictSalespersons) || '其他业务员' }} 报过该终端客户
                     </span>
                   </div>
                 </UFormField>
@@ -660,9 +660,9 @@
                       variant="soft"
                       size="xs"
                       icon="i-lucide-triangle-alert"
-                      :title="`检测到已有其他业务员报过该终端客户（匹配：${uploadEndUserConflict.matchedEndUsers.join('、') || parsedData.endUser}）`"
+                      :title="`检测到已有 ${formatConflictSalespersons(uploadEndUserConflict.conflictSalespersons, Infinity) || '其他业务员'} 报过该终端客户（匹配：${uploadEndUserConflict.matchedEndUsers.join('、') || parsedData.endUser}）`"
                     >
-                      已有其他业务员报过该终端客户
+                      已有 {{ formatConflictSalespersons(uploadEndUserConflict.conflictSalespersons) || '其他业务员' }} 报过该终端客户
                     </UBadge>
                   </div>
                   <div><span class="text-muted">城市 / City：</span><span class="text-default ml-1">{{ parsedData.city || '-' }}</span></div>
@@ -955,7 +955,7 @@
             </div>
           </div>
 
-          <!-- 终端客户冲突提示横幅：在二审、终审等审核视角展示具体冲突单据，业务员视角仅提示存在其他业务员报价 -->
+          <!-- 终端客户冲突提示横幅：展示已报过该终端客户的具体业务员姓名；二审、终审等审核视角额外展示冲突单据明细 -->
           <div
             v-if="detail && detail.endUserConflictCount > 0"
             class="shrink-0 border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs"
@@ -966,7 +966,7 @@
               <UIcon name="i-lucide-triangle-alert" class="mt-0.5 size-4 shrink-0 text-warning" />
               <div class="min-w-0 flex-1 space-y-1">
                 <div class="font-semibold text-warning">
-                  终端客户冲突提醒：检测到终端客户「{{ detail.endUser }}」已有其他业务员报过价（共 {{ detail.endUserConflictCount }} 份报价单）
+                  终端客户冲突提醒：检测到终端客户「{{ detail.endUser }}」已有 {{ detailConflictSalespersonText || '其他业务员' }} 报过价（共 {{ detail.endUserConflictCount }} 份报价单）
                 </div>
                 <ul v-if="detail.endUserConflicts?.length" class="max-h-24 space-y-0.5 overflow-y-auto text-default">
                   <li v-for="item in detail.endUserConflicts.slice(0, 8)" :key="item.id" class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -1981,16 +1981,33 @@ const formData = reactive({
   lines: [],
 })
 
-// 终端客户冲突实时检测（在线录入 & 导入 Excel 预览）：只警告、不拦截提交，普通业务员视角仅提示有其他业务员报过
-const formEndUserConflict = reactive({ hasConflict: false, conflictCount: 0, matchedEndUsers: [] })
-const uploadEndUserConflict = reactive({ hasConflict: false, conflictCount: 0, matchedEndUsers: [] })
+// 终端客户冲突实时检测（在线录入 & 导入 Excel 预览）：只警告、不拦截提交，所有视角均提示具体业务员姓名（普通业务员不暴露对方单号与价格）
+const formEndUserConflict = reactive({ hasConflict: false, conflictCount: 0, matchedEndUsers: [], conflictSalespersons: [] })
+const uploadEndUserConflict = reactive({ hasConflict: false, conflictCount: 0, matchedEndUsers: [], conflictSalespersons: [] })
 let formEndUserConflictVersion = 0
 let uploadEndUserConflictVersion = 0
+
+function formatConflictSalespersons(names, maxVisible = 3) {
+  const unique = Array.from(
+    new Set((Array.isArray(names) ? names : []).map((name) => String(name || '').trim()).filter(Boolean)),
+  )
+  if (!unique.length) return ''
+  if (unique.length <= maxVisible) return unique.join('、')
+  return `${unique.slice(0, maxVisible).join('、')} 等 ${unique.length} 位业务员`
+}
+
+const detailConflictSalespersonText = computed(() => {
+  const rawNames = Array.isArray(detail.value?.endUserConflictSalespersons) && detail.value.endUserConflictSalespersons.length
+    ? detail.value.endUserConflictSalespersons
+    : (Array.isArray(detail.value?.endUserConflicts) ? detail.value.endUserConflicts.map((item) => item?.salespersonName) : [])
+  return formatConflictSalespersons(rawNames)
+})
 
 function resetEndUserConflict(target) {
   target.hasConflict = false
   target.conflictCount = 0
   target.matchedEndUsers = []
+  target.conflictSalespersons = []
 }
 
 async function queryEndUserConflict(endUser, target, getVersion) {
@@ -2010,6 +2027,9 @@ async function queryEndUserConflict(endUser, target, getVersion) {
       target.hasConflict = Boolean(response.data.hasConflict)
       target.conflictCount = Number(response.data.conflictCount || 0)
       target.matchedEndUsers = Array.isArray(response.data.matchedEndUsers) ? response.data.matchedEndUsers : []
+      target.conflictSalespersons = Array.isArray(response.data.conflictSalespersons) && response.data.conflictSalespersons.length
+        ? response.data.conflictSalespersons
+        : (Array.isArray(response.data.conflicts) ? response.data.conflicts.map((item) => item?.salespersonName).filter(Boolean) : [])
     } else {
       resetEndUserConflict(target)
     }

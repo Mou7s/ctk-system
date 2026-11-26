@@ -25,7 +25,7 @@ import {
 import { DEFAULT_QUOTATION_UNIT, formatQuotationOptionViolations, normalizeQuotationOptionValue, quotationOptionDisplayLabel, quotationOptionViolations } from './quotation-options'
 import { computeUsdPriceKpcs, computeUsdPricePc, parseDomesticQuotationWorkbook, parseQuotationWorkbook, type ParsedQuotationWorkbook, type QuotationLineInput } from './quotation-parser'
 import { normalizeQuotationValidity } from './quotation-validity'
-import { findQuotationEndUserConflicts } from './quotation-end-user-conflict'
+import { extractConflictSalespersons, findQuotationEndUserConflicts } from './quotation-end-user-conflict'
 import { quotationPriceAdjustment } from '../../app/packages/shared/quotationAnalysis'
 import {
   attachQuotationApprovedNotify,
@@ -633,6 +633,7 @@ export async function getQuotation(event: H3Event, businessType: QuotationBusine
       ? await findQuotationEndUserConflicts(pool, headerEndUser, header.salespersonId, id)
       : []
     const endUserConflictCount = rawConflicts.length
+    const endUserConflictSalespersons = extractConflictSalespersons(rawConflicts)
     const endUserConflicts = canViewAll ? rawConflicts : []
     return apiSuccess({
       ...header,
@@ -642,6 +643,7 @@ export async function getQuotation(event: H3Event, businessType: QuotationBusine
       rate: headerRate,
       quoteDate: headerQuoteDate,
       endUserConflictCount,
+      endUserConflictSalespersons,
       endUserConflicts,
       ...reviewerCapabilities(session, quotation.header, businessType),
       lines: quotation.lines.map((line) => ({ ...mapLineRow(line), endUser: headerEndUser || line.end_user || '' })),

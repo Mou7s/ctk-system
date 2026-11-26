@@ -103,9 +103,21 @@ export async function findQuotationEndUserConflicts(
   return conflicts
 }
 
+export function extractConflictSalespersons(conflicts: EndUserConflictItem[]): string[] {
+  const seen = new Set<string>()
+  const names: string[] = []
+  for (const item of conflicts) {
+    const name = String(item.salespersonName || '').trim()
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    names.push(name)
+  }
+  return names
+}
+
 /**
  * HTTP 处理：前端录入或上传 Excel 时实时检查终端客户冲突。
- * - 普通业务员视角：仅返回 hasConflict、conflictCount、matchedEndUsers，隐去其他业务员姓名与单号
+ * - 普通业务员视角：返回 hasConflict、conflictCount、matchedEndUsers、conflictSalespersons（展示具体业务员姓名，但仍隐去对方单号、状态等单据明细）
  * - 审核人/管理员视角（canViewAllQuotations）：额外返回完整 conflicts 列表（含业务员、单号、状态、日期）
  */
 export function checkQuotationEndUserConflict(event: H3Event) {
@@ -137,12 +149,14 @@ export function checkQuotationEndUserConflict(event: H3Event) {
 
     const conflicts = await findQuotationEndUserConflicts(pool, endUser, targetSalespersonId, excludeId)
     const matchedEndUsers = Array.from(new Set(conflicts.map((item) => item.endUser)))
+    const conflictSalespersons = extractConflictSalespersons(conflicts)
     const canViewAll = canViewAllQuotations(session, 'FOREIGN')
 
     return apiSuccess({
       hasConflict: conflicts.length > 0,
       conflictCount: conflicts.length,
       matchedEndUsers,
+      conflictSalespersons,
       conflicts: canViewAll ? conflicts : [],
     })
   }, '终端客户冲突检测失败，请稍后重试')
