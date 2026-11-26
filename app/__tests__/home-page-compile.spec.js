@@ -133,4 +133,17 @@ describe('工作台首页模板', () => {
     expect(source).toContain('xl:sticky')
     expect(source).toContain('xl:top-6')
   })
+
+  it('工作台首页改造契约：去硬编码 TK、无框排版时钟、分类锚点与公告详情容错', () => {
+    expect(source).not.toMatch(/>\s*TK\s*</)
+    expect(source).not.toContain('<UDashboardSearchButton')
+    expect(source).toContain('<UAvatar')
+    expect(source).toContain('clockMainLabel')
+    expect(source).toContain('clockSecondLabel')
+    expect(source).toContain('menuCategories.length >= 4')
+    expect(source).toContain('scrollToCategory')
+    expect(source).toContain('noticeDetailLoading')
+    expect(source).toContain('noticeDetailError')
+    expect(source).toContain('home-notice-prose')
+  })
 })
