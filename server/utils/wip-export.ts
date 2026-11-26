@@ -1,5 +1,5 @@
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { loadXlsx } from './lazy-deps'
 import { getAuthSession } from './auth'
 import { apiError, errorMessage } from './response'
 import { hasWipFilter, queryWipReport, weakWipFilterMessage, WIP_FILTER_REQUIRED_MESSAGE, WipQueryLimitError } from './wip'
@@ -42,7 +42,8 @@ function wipStatusLabel(detail: Record<string, unknown>): string {
   return detail.unreported ? WIP_STATUS_LABELS.unreported : WIP_STATUS_LABELS.reported
 }
 
-function sendExcel(event: H3Event, details: Array<Record<string, unknown>>) {
+async function sendExcel(event: H3Event, details: Array<Record<string, unknown>>) {
+  const XLSX = await loadXlsx()
   const rows = details.map((detail) => [
     ...fields.map((field) => detail[field] ?? ''),
     wipStatusLabel(detail),

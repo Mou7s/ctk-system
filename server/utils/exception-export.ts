@@ -1,8 +1,9 @@
-import * as XLSX from 'xlsx/xlsx.mjs'
 import { setResponseHeader, type H3Event } from 'h3'
+import { getXlsxSync } from './lazy-deps'
 import { exceptionExportHeaders } from './exception-read'
 
 export function sendExceptionExcel(event: H3Event, rows: Array<Record<string, unknown>>) {
+  const XLSX = getXlsxSync()
   const worksheet = XLSX.utils.json_to_sheet(rows, { header: exceptionExportHeaders })
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, '异常单数据')

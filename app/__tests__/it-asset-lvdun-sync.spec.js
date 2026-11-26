@@ -30,10 +30,19 @@ describe('IT asset LvDun sync utils', () => {
   it('normalizes department aliases and preserves numbered non-employee aliases like 包装1/2/3', () => {
     expect(cleanLvDunDept('物控部')).toBe('物控')
     expect(cleanLvDunDept('塑封部（只能使用企业微信和邮箱）')).toBe('塑封部')
+    expect(cleanLvDunDept('国际部')).toBe('国际销售部')
+    expect(cleanLvDunDept('国际一部')).toBe('国际销售部')
+    expect(cleanLvDunDept('国际二部')).toBe('国际销售部')
 
     const wxMap = new Map([
       ['刘佳', [{ userid: 'LiuJia', name: '刘佳', dept: '物控', status: 'active' }]],
+      ['张外贸', [{ userid: 'ZhangWaiMao', name: '张外贸', dept: '国际一部', status: 'active' }]],
     ])
+    expect(resolveLvDunOwner('张外贸', '国际部', '', wxMap)).toEqual({
+      userUserid: 'ZhangWaiMao',
+      userName: '张外贸',
+      useDept: '国际销售部',
+    })
     expect(resolveLvDunOwner('刘佳2', '物控部', '', wxMap)).toEqual({
       userUserid: 'LiuJia',
       userName: '刘佳',
@@ -137,19 +146,19 @@ describe('IT asset LvDun sync utils', () => {
         id: 8, asset_no: 'TK-PC-0008', asset_name: '办公台式机', device_type: 'desktop',
         brand: '华硕', model: 'H310M-D3V', use_dept: '品质部', user_userid: 'GuTingHua',
         user_name: '顾婷花', status: 'in_use', ip_address: '192.0.2.30',
-        mac_address: 'AA:BB:CC:00:00:01', print_count: 1, remark: '绿盾ID: 1008',
+        mac_address: 'AA:BB:CC:00:00:01', lvdun_id: 1008, print_count: 1, remark: null,
       },
       {
         id: 36, asset_no: 'TK-PC-0036', asset_name: '办公台式机', device_type: 'desktop',
         brand: '华硕', model: 'H81M', use_dept: '物控', user_userid: null,
         user_name: '外发电镀', status: 'in_use', ip_address: '192.0.2.36',
-        mac_address: 'AA:BB:CC:00:00:02', print_count: 0, remark: '绿盾ID: 1119',
+        mac_address: 'AA:BB:CC:00:00:02', lvdun_id: 1119, print_count: 0, remark: null,
       },
       {
         id: 99, asset_no: 'TK-PC-0099', asset_name: '办公台式机', device_type: 'desktop',
         brand: '华硕', model: 'H110M', use_dept: '品质部', user_userid: null,
         user_name: '旧员工', status: 'in_use', ip_address: '192.0.2.99',
-        mac_address: 'AA:BB:CC:00:00:03', print_count: 0, remark: '绿盾ID: 1099',
+        mac_address: 'AA:BB:CC:00:00:03', lvdun_id: null, print_count: 0, remark: '绿盾ID: 1099',
       },
     ]
 
@@ -170,11 +179,13 @@ describe('IT asset LvDun sync utils', () => {
     expect(plan.disabled[0]).toMatchObject({ assetNo: 'TK-PC-0099', lvdunId: 1099 })
     expect(plan.inserts).toHaveLength(1)
     expect(plan.inserts[0]).toMatchObject({
+      lvdunId: 1200,
       userName: '王艺可',
       userUserid: 'WangYiKe',
       useDept: '终端事业部',
       brand: '联想',
       model: 'ThinkCentre M740t',
+      remark: '',
     })
   })
 })

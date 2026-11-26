@@ -1,5 +1,5 @@
 import { errorMessage } from './response'
-import sql from 'mssql'
+import { loadMssql } from './lazy-deps'
 import { withK3SqlServerTransaction, queryK3SqlServer, sqlBigIntParameter } from './sqlserver'
 import { getMysqlPool, mysqlQueryOptions } from './mysql'
 
@@ -93,6 +93,7 @@ export async function updateMaterialSafeStock(
   assertWritable(info, materialCode, stockOrgCode)
 
   await withK3SqlServerTransaction(async (transaction) => {
+    const sql = await loadMssql()
     const request = transaction.request()
     request.input('safeStock', sql.Decimal(18, 6), safeStock)
     sqlBigIntParameter(request, 'materialId', info.materialId)
@@ -193,6 +194,7 @@ export async function enableMaterialSafeStockWarning(
   assertWritable(info, materialCode, stockOrgCode)
 
   await withK3SqlServerTransaction(async (transaction) => {
+    const sql = await loadMssql()
     const request = transaction.request()
     request.input('safeStock', sql.Decimal(18, 6), safeStock)
     sqlBigIntParameter(request, 'materialId', info.materialId)

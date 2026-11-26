@@ -1,6 +1,6 @@
 import { getQuery, setResponseHeader, type H3Event } from 'h3'
 import { unzipSync, zipSync } from 'fflate'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync } from './lazy-deps'
 import { getAuthSession } from './auth'
 import { executeBillQuery, K3CloudError } from './k3'
 import { apiError, errorMessage } from './response'
@@ -353,6 +353,7 @@ function buildMatrix(rawRows: unknown[][], startDate: string, endDate: string, t
   }
   rows.push(totalRow)
 
+  const XLSX = getXlsxSync()
   const sheet = XLSX.utils.aoa_to_sheet(rows)
   for (const item of formulaCells) {
     sheet[XLSX.utils.encode_cell({ r: item.row, c: item.column })] = { t: 'n', f: item.formula, v: item.value }
@@ -369,7 +370,7 @@ function buildMatrix(rawRows: unknown[][], startDate: string, endDate: string, t
 }
 
 function cellAddress(column: number, rowNumber: number): string {
-  return XLSX.utils.encode_cell({ r: rowNumber - 1, c: column })
+  return getXlsxSync().utils.encode_cell({ r: rowNumber - 1, c: column })
 }
 
 function matrixStylesXml(): string {
@@ -457,6 +458,7 @@ function styleMatrixWorkbook(buffer: Buffer, columnTypes: ColumnType[], totalRow
   if (!sheetBytes || !files[stylesPath]) return buffer
 
   let sheetXml = decoder.decode(sheetBytes)
+  const XLSX = getXlsxSync()
   sheetXml = sheetXml.replace(/<c\b([^>]*\br="([A-Z]+)(\d+)"[^>]*)>/gu, (full, attributes, columnLetters, rowText) => {
     const row = Number(rowText)
     const column = XLSX.utils.decode_col(columnLetters)

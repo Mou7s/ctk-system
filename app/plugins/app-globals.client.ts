@@ -1,3 +1,4 @@
+import { defineAsyncComponent } from "vue";
 import { download } from "@/utils/request";
 import { useDict } from "@/utils/dict";
 import {
@@ -8,18 +9,19 @@ import {
   selectDictLabel,
   selectDictLabels,
 } from "@/utils/helpers";
-import Pagination from "@/components/Pagination";
-import RightToolbar from "@/components/RightToolbar";
-import Editor from "@/components/Editor";
-import FileUpload from "@/components/FileUpload";
-import ImageUpload from "@/components/ImageUpload";
-import ImagePreview from "@/components/ImagePreview";
-import TreeSelect from "@/components/TreeSelect";
-import DictTag from "@/components/DictTag";
 import SvgIcon from "@/components/SvgIcon";
 import elementIcons from "@/components/SvgIcon/svgicon";
 import directive from "@/directive";
 import plugins from "@/plugins";
+
+const Pagination = defineAsyncComponent(() => import("@/components/Pagination/index.vue"));
+const RightToolbar = defineAsyncComponent(() => import("@/components/RightToolbar/index.vue"));
+const FileUpload = defineAsyncComponent(() => import("@/components/FileUpload/index.vue"));
+const ImageUpload = defineAsyncComponent(() => import("@/components/ImageUpload/index.vue"));
+const ImagePreview = defineAsyncComponent(() => import("@/components/ImagePreview/index.vue"));
+const TreeSelect = defineAsyncComponent(() => import("@/components/TreeSelect/index.vue"));
+const DictTag = defineAsyncComponent(() => import("@/components/DictTag/index.vue"));
+const Editor = defineAsyncComponent(() => import("@/components/Editor/index.vue"));
 
 export default defineNuxtPlugin((nuxtApp) => {
   const app = nuxtApp.vueApp;

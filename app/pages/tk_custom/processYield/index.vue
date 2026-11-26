@@ -176,13 +176,11 @@
               </UBadge>
             </div>
             <div class="relative min-h-[360px]">
-              <VChart
+              <div
                 v-if="chartRows.length"
-                :option="chartOption"
+                ref="chartEl"
                 class="w-full cursor-pointer"
                 :style="{ height: `${chartHeight}px` }"
-                autoresize
-                @dblclick="handleChartDoubleClick"
               />
               <div v-else class="absolute inset-0 flex items-center justify-center text-sm text-app-muted">
                 当前日期范围内暂无{{ activeMetric.label }}数据
@@ -361,11 +359,17 @@
 
 <script setup name="processYield">
 import dayjs from 'dayjs'
-import { h, resolveComponent } from 'vue'
+import * as echarts from 'echarts/core'
+import { BarChart } from 'echarts/charts'
+import { GridComponent, MarkLineComponent, TitleComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import { h, nextTick, onBeforeUnmount, onMounted, ref, resolveComponent, shallowRef, watch } from 'vue'
 import {
   getProcessYieldDashboardData,
   getProcessYieldDashboardPlanDetails,
 } from '@/api/tk_custom/processYield'
+
+echarts.use([BarChart, GridComponent, MarkLineComponent, TitleComponent, TooltipComponent, CanvasRenderer])
 import { TkPagination, TkUTable } from '@ctk-system/ui'
 import {
   PROCESS_YIELD_METRICS,
@@ -1079,7 +1083,51 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;')
 }
 
+const chartEl = ref(null)
+const chartInstance = shallowRef(null)
+let chartResizeObserver = null
+
+function disposeChart() {
+  if (chartResizeObserver) {
+    chartResizeObserver.disconnect()
+    chartResizeObserver = null
+  }
+  if (chartInstance.value) {
+    chartInstance.value.dispose()
+    chartInstance.value = null
+  }
+}
+
+function renderChart() {
+  if (!chartRows.value.length || !chartEl.value) {
+    disposeChart()
+    return
+  }
+  if (!chartInstance.value || chartInstance.value.getDom() !== chartEl.value) {
+    disposeChart()
+    const instance = echarts.init(chartEl.value, undefined, { renderer: 'canvas' })
+    instance.on('dblclick', handleChartDoubleClick)
+    chartInstance.value = instance
+    if (typeof ResizeObserver !== 'undefined') {
+      chartResizeObserver = new ResizeObserver(() => {
+        chartInstance.value?.resize()
+      })
+      chartResizeObserver.observe(chartEl.value)
+    }
+  }
+  chartInstance.value.setOption(chartOption.value, true)
+  chartInstance.value.resize()
+}
+
+watch([chartOption, chartHeight], () => {
+  nextTick(() => renderChart())
+})
+
 onMounted(() => {
   fetchData()
+})
+
+onBeforeUnmount(() => {
+  disposeChart()
 })
 </script>

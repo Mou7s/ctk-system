@@ -1,6 +1,6 @@
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
 import type { RowDataPacket } from 'mysql2/promise'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { loadXlsx } from './lazy-deps'
 import { mysqlQueryOptions, getMysqlPool } from './mysql'
 import { queryText, withReadSession } from './read'
 
@@ -66,7 +66,8 @@ function translated(value: unknown) {
   return labels[raw] || cellValue(value)
 }
 
-function sendExcel(event: H3Event, rows: RowDataPacket[]) {
+async function sendExcel(event: H3Event, rows: RowDataPacket[]) {
+  const XLSX = await loadXlsx()
   const headers = ['活动ID', '手机号', '姓名', '公司名', '职务', '微信OpenID', '奖品ID', '奖品名称', '中奖状态', '兑奖码', '抽奖时间', '兑奖时间']
   const data = rows.map((row) => [
     cellValue(row.activity_id), cellValue(row.user_phone), cellValue(row.user_name), cellValue(row.user_company),

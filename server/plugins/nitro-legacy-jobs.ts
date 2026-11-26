@@ -1,10 +1,12 @@
 import { NITRO_JOBS } from '../utils/nitro-jobs/registry'
 import { isNitroJobEnabled as enabled } from '../utils/nitro-jobs/types'
+import { skipHeavySchedulerInDev } from '../utils/nitro-jobs/dev-guard'
 
 type State = { running: Set<string>, timers: ReturnType<typeof setTimeout>[], intervals: ReturnType<typeof setInterval>[] }
 const g = globalThis as typeof globalThis & { __ctkNitroLegacyJobs?: State }
 
 export default defineNitroPlugin((nitro) => {
+  if (skipHeavySchedulerInDev('NitroJobs')) return
   if (g.__ctkNitroLegacyJobs) return
   const state: State = { running: new Set(), timers: [], intervals: [] }
   g.__ctkNitroLegacyJobs = state

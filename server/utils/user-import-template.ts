@@ -1,5 +1,5 @@
 import { setResponseHeader, type H3Event } from 'h3'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { loadXlsx } from './lazy-deps'
 import { getAuthSession } from './auth'
 import { apiError } from './response'
 
@@ -10,6 +10,7 @@ export const USER_IMPORT_TEMPLATE_HEADERS = [
 export async function exportUserImportTemplate(event: H3Event) {
   if (!await getAuthSession(event)) return apiError('登录状态已过期', 401)
 
+  const XLSX = await loadXlsx()
   const worksheet = XLSX.utils.aoa_to_sheet([USER_IMPORT_TEMPLATE_HEADERS])
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, '用户数据')

@@ -1,5 +1,5 @@
-import sql from 'mssql'
 import { isIP } from 'node:net'
+import { getMssqlSync, loadMssql } from './lazy-deps'
 import { getNitroServerConfig } from './runtime'
 import { isDemoScope } from './data-scope'
 import { DemoModeError } from './demo'
@@ -109,6 +109,7 @@ function classifyError(error: unknown): SqlServerError {
 }
 
 async function connectPool(): Promise<SqlServerPool> {
+  const sql = await loadMssql()
   const hosts = hostCandidates()
   let lastError: unknown
   for (const host of hosts) {
@@ -205,13 +206,21 @@ export function sqlParameterName(prefix: string, index: number): string {
 }
 
 export function sqlStringParameter(request: any, name: string, value: string): any {
+  const sql = getMssqlSync()
   return request.input(name, sql.NVarChar(255), value)
 }
 
 export function sqlDateParameter(request: any, name: string, value: string): any {
+  const sql = getMssqlSync()
   return request.input(name, sql.Date, value)
 }
 
 export function sqlBigIntParameter(request: any, name: string, value: number | string): any {
+  const sql = getMssqlSync()
   return request.input(name, sql.BigInt, value)
+}
+
+export function sqlIntParameter(request: any, name: string, value: number): any {
+  const sql = getMssqlSync()
+  return request.input(name, sql.Int, value)
 }

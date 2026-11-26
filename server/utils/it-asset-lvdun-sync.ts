@@ -3,7 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { H3Event } from 'h3'
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise'
-import { Client } from 'ssh2'
+import { loadSsh2 } from './lazy-deps'
 import { hasPermission, type AuthSession } from './auth'
 import { mysqlQueryOptions } from './mysql'
 import { apiError, apiSuccess } from './response'
@@ -16,7 +16,7 @@ import {
   withIdempotentWriteSession,
   writeFail,
 } from './write'
-import { formatItAssetNoFromSeq } from './it-asset-read'
+import { formatItAssetNoFromSeq, normalizeItAssetDept } from './it-asset-read'
 
 function displayName(session: AuthSession): string {
   return text(session.user.nickName) || session.userName
@@ -49,7 +49,9 @@ const SPECIAL_DEVICE_KEYWORDS = [
 ]
 const DEPT_ALIAS_MAP: Record<string, string> = {
   国内部: '国内销售部',
-  国际部: '国际一部',
+  国际部: '国际销售部',
+  国际一部: '国际销售部',
+  国际二部: '国际销售部',
   物控部: '物控',
   物控: '物控',
   研发中心工程部: '工程部',
@@ -133,6 +135,7 @@ export interface ExistingItAssetRow {
   status: string
   ip_address: string | null
   mac_address: string | null
+  lvdun_id?: number | null
   print_count: number
   remark: string | null
 }
@@ -284,10 +287,10 @@ export function resolveLvDunOwner(
   const allMatches = personCand ? (wxByName.get(personCand) || []) : []
   const activeMatches = allMatches.filter((emp) => emp.status === 'active')
   const sameDeptActive = deptFromLv
-    ? activeMatches.filter((emp) => String(emp.dept || '').trim() === deptFromLv)
+    ? activeMatches.filter((emp) => normalizeItAssetDept(emp.dept) === deptFromLv)
     : []
   const sameDeptInactive = deptFromLv
-    ? allMatches.filter((emp) => emp.status !== 'active' && String(emp.dept || '').trim() === deptFromLv)
+    ? allMatches.filter((emp) => emp.status !== 'active' && normalizeItAssetDept(emp.dept) === deptFromLv)
     : []
 
   let matchedEmp: WxEmployeeRow | null = null
@@ -304,7 +307,7 @@ export function resolveLvDunOwner(
     return {
       userUserid: String(matchedEmp.userid || '').trim(),
       userName: String(matchedEmp.name || '').trim(),
-      useDept: String(matchedEmp.dept || '').trim() || deptFromLv,
+      useDept: normalizeItAssetDept(matchedEmp.dept) || deptFromLv,
     }
   }
 
@@ -325,6 +328,12 @@ function parseLvDunIdFromRemark(remark: string | null | undefined): number | nul
   if (!m) return null
   const id = Number(m[1])
   return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
+function resolveExistingLvDunId(asset: Pick<ExistingItAssetRow, 'lvdun_id' | 'remark'>): number | null {
+  const direct = Number(asset.lvdun_id)
+  if (Number.isSafeInteger(direct) && direct > 0) return direct
+  return parseLvDunIdFromRemark(asset.remark)
 }
 
 function hwFirst(bag: Record<string, Array<{ r: number; v: string }>> | undefined, propId: number): string {
@@ -435,7 +444,7 @@ export function buildLvDunSyncPlan(
   const existingByMac = new Map<string, ExistingItAssetRow>()
   const existingByIp = new Map<string, ExistingItAssetRow>()
   for (const asset of existingAssets) {
-    const cid = parseLvDunIdFromRemark(asset.remark)
+    const cid = resolveExistingLvDunId(asset)
     if (cid) existingByCid.set(cid, asset)
     const mac = normalizeMac(asset.mac_address)
     if (mac) existingByMac.set(mac, asset)
@@ -448,18 +457,18 @@ export function buildLvDunSyncPlan(
   const matchedAssetIds = new Set<number>()
   const matchedCids = new Set<number>()
 
-  // 1. Check existing assets that came from LvDun (have 绿盾ID or matching MAC)
+  // 1. Check existing assets that came from LvDun (have lvdun_id or matching MAC)
   for (const asset of existingAssets) {
-    const cidFromRemark = parseLvDunIdFromRemark(asset.remark)
+    const cidFromAsset = resolveExistingLvDunId(asset)
     const assetMac = normalizeMac(asset.mac_address)
     let comp: LvDunComputer | undefined
-    if (cidFromRemark !== null) {
-      comp = compById.get(cidFromRemark)
+    if (cidFromAsset !== null) {
+      comp = compById.get(cidFromAsset)
     } else if (assetMac) {
       comp = authorizedComps.find((c) => normalizeMac(c.mac) === assetMac)
     }
 
-    if (cidFromRemark !== null && (!comp || !isAuthorized(cidFromRemark))) {
+    if (cidFromAsset !== null && (!comp || !isAuthorized(cidFromAsset))) {
       disabled.push({
         assetId: asset.id,
         assetNo: asset.asset_no,
@@ -467,9 +476,9 @@ export function buildLvDunSyncPlan(
         userName: String(asset.user_name || '').trim(),
         useDept: String(asset.use_dept || '').trim(),
         ipAddress: String(asset.ip_address || '').trim(),
-        lvdunId: cidFromRemark,
+        lvdunId: cidFromAsset,
         lvdunNick: comp ? String(comp.nick || '').trim() : '',
-        lastOnline: lastById.get(cidFromRemark) || '',
+        lastOnline: lastById.get(cidFromAsset) || '',
         printCount: Number(asset.print_count || 0),
       })
       matchedAssetIds.add(asset.id)
@@ -571,14 +580,6 @@ export function buildLvDunSyncPlan(
     const deviceType = isLaptop ? 'laptop' : 'desktop'
     const resolved = resolveLvDunOwner(comp.nick, grp?.name || '', parentGrp?.name || '', wxActiveByName)
     const assetName = isLaptop ? '办公笔记本' : '办公台式机'
-    const lot = lastById.get(comp.id) || ''
-    const remarkParts = [
-      comp.name ? `主机名: ${comp.name}` : '',
-      comp.nick && comp.nick !== resolved.userName && comp.nick !== assetName ? `绿盾备注: ${comp.nick}` : '',
-      `绿盾ID: ${comp.id}`,
-      lot ? `最近在线: ${lot.slice(0, 10)}` : '',
-      '来源: 绿盾一键同步',
-    ].filter(Boolean)
 
     inserts.push({
       lvdunId: comp.id,
@@ -598,7 +599,7 @@ export function buildLvDunSyncPlan(
       osVersion,
       ipAddress: String(comp.ip || '').trim().slice(0, 64),
       macAddress: mac,
-      remark: remarkParts.join(' | ').slice(0, 500),
+      remark: '',
     })
   }
 
@@ -670,6 +671,7 @@ export async function fetchLvDunSnapshotViaSsh(): Promise<LvDunSnapshot> {
   const encodedPs = Buffer.from(LVDUN_FETCH_PS_SCRIPT, 'utf16le').toString('base64')
   const remoteCmd = `powershell -NoProfile -EncodedCommand ${encodedPs}`
 
+  const { Client } = await loadSsh2()
   const stdout = await new Promise<string>((resolve, reject) => {
     const conn = new Client()
     let out = ''
@@ -813,7 +815,7 @@ export async function previewItAssetLvDunSync(event: H3Event) {
       fetchLvDunSnapshotViaSsh(),
       pool.query<RowDataPacket[]>(
         mysqlQueryOptions(
-          `SELECT id, asset_no, asset_name, device_type, brand, model, use_dept, user_userid, user_name, status, ip_address, mac_address, print_count, remark
+          `SELECT id, asset_no, asset_name, device_type, brand, model, use_dept, user_userid, user_name, status, ip_address, mac_address, lvdun_id, print_count, remark
            FROM tk_it_asset ORDER BY asset_no ASC`,
         ),
       ),
@@ -856,7 +858,6 @@ export async function applyItAssetLvDunSync(event: H3Event) {
       }
 
       const operator = displayName(session)
-      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
       let updatedCount = 0
       let insertedCount = 0
       let disabledCount = 0
@@ -865,22 +866,16 @@ export async function applyItAssetLvDunSync(event: H3Event) {
         const assetId = Number(item?.assetId)
         if (!Number.isSafeInteger(assetId) || assetId <= 0) continue
         const [existRows] = await connection.query<RowDataPacket[]>(
-          mysqlQueryOptions(`SELECT id, user_name, use_dept, remark FROM tk_it_asset WHERE id = ? LIMIT 1`),
+          mysqlQueryOptions(`SELECT id FROM tk_it_asset WHERE id = ? LIMIT 1`),
           [assetId],
         )
-        const existing = existRows[0]
-        if (!existing) continue
+        if (!existRows[0]) continue
 
         const newUserName = nullableLimitedText(item?.newUserName, 64)
         const newUserUserid = nullableLimitedText(item?.newUserUserid, 64)
         const newUseDept = nullableLimitedText(item?.newUseDept, 100)
-        const oldName = String(existing.user_name || '').trim() || '空'
-        const targetLabel = newUserName || '空'
-        const note = `${today} 绿盾同步(原${oldName}→${targetLabel})`
-        const prevRemark = String(existing.remark || '').trim()
-        const nextRemark = prevRemark
-          ? (prevRemark.includes(note) ? prevRemark : `${prevRemark} | ${note}`.slice(0, 500))
-          : note
+        const rawLvDunId = Number(item?.lvdunId)
+        const lvdunId = Number.isSafeInteger(rawLvDunId) && rawLvDunId > 0 ? rawLvDunId : null
 
         const [res]: any = await connection.query(
           mysqlQueryOptions(`
@@ -888,13 +883,13 @@ export async function applyItAssetLvDunSync(event: H3Event) {
             SET user_userid = ?,
                 user_name = ?,
                 use_dept = ?,
-                remark = ?,
+                lvdun_id = COALESCE(lvdun_id, ?),
                 updated_by_id = ?,
                 updated_by_name = ?
             WHERE id = ?
             LIMIT 1
           `),
-          [newUserUserid, newUserName, newUseDept, nextRemark, session.userId, operator, assetId],
+          [newUserUserid, newUserName, newUseDept, lvdunId, session.userId, operator, assetId],
         )
         if (Number(res?.affectedRows || 0) > 0) updatedCount += 1
       }
@@ -912,14 +907,16 @@ export async function applyItAssetLvDunSync(event: H3Event) {
         }
         const assetNo = await generateNextAssetNoForSync(connection)
         const deviceType = String(item?.deviceType || 'desktop') === 'laptop' ? 'laptop' : 'desktop'
+        const rawLvDunId = Number(item?.lvdunId)
+        const lvdunId = Number.isSafeInteger(rawLvDunId) && rawLvDunId > 0 ? rawLvDunId : null
         await connection.query(
           mysqlQueryOptions(`
             INSERT INTO tk_it_asset (
               asset_no, asset_name, device_type, brand, model, serial_no,
               use_dept, user_userid, user_name, status,
-              cpu_spec, memory_spec, disk_spec, os_version, ip_address, mac_address,
+              cpu_spec, memory_spec, disk_spec, os_version, ip_address, mac_address, lvdun_id,
               remark, created_by_id, created_by_name, updated_by_id, updated_by_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_use', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_use', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `),
           [
             assetNo,
@@ -937,6 +934,7 @@ export async function applyItAssetLvDunSync(event: H3Event) {
             nullableLimitedText(item?.osVersion, 80),
             nullableLimitedText(item?.ipAddress, 64),
             mac || null,
+            lvdunId,
             nullableLimitedText(item?.remark, 500),
             session.userId,
             operator,

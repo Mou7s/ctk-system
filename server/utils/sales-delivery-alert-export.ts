@@ -1,5 +1,5 @@
-import XLSX from 'xlsx-js-style'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
+import { getXlsxStyleSync } from './lazy-deps'
 import type { DeliveryRow } from './sales-delivery-alert-model'
 
 const PRODUCTION_COLORS: Record<string, string> = {
@@ -9,6 +9,7 @@ const PRODUCTION_COLORS: Record<string, string> = {
 }
 
 export function renderDeliveryAlertExcel(rows: DeliveryRow[], title: string, fetchedAt: string): Uint8Array {
+  const XLSX = getXlsxStyleSync()
   const columns = ['紧急程度','剩余天数','生产回复交期','客户','销售订单','行号','物料编码','物料名称','单位','订单数量','已出库数量','未出库数量','退货数量','业务员','跟单员1','跟单员2','异常说明','生产分类','生产状态','累计合格入库数量','入库待发数量','生产未完成数量','物料规格','生产订单号']
   const data = rows.map(r => [r.urgency, r.daysLeft ?? '', r.dueDate || '', r.customer, r.billNo, r.seq,
     r.materialCode, r.materialName, r.unit, r.qty, r.shippedQty, r.remainingQty, r.returnedQty, r.seller, r.follow1, r.follow2, r.issues.join('；'),

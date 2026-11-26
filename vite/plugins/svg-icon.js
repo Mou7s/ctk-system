@@ -57,6 +57,7 @@ function createSprite(iconDir) {
 
 export default function createSvgIcon() {
   const iconDir = path.resolve(process.cwd(), "app/assets/icons/svg");
+  let cachedModuleCode = null;
 
   return {
     name: "local-svg-sprite",
@@ -72,8 +73,12 @@ export default function createSvgIcon() {
         return null;
       }
 
+      if (cachedModuleCode !== null) {
+        return cachedModuleCode;
+      }
+
       const sprite = JSON.stringify(createSprite(iconDir));
-      return `
+      cachedModuleCode = `
 const sprite = ${sprite};
 
 function mountSvgSprite() {
@@ -90,6 +95,7 @@ if (document.readyState === "loading") {
 
 export default mountSvgSprite;
 `;
+      return cachedModuleCode;
     },
     configureServer(server) {
       server.watcher.add(iconDir);
@@ -99,6 +105,7 @@ export default mountSvgSprite;
         return;
       }
 
+      cachedModuleCode = null;
       const module = ctx.server.moduleGraph.getModuleById(resolvedVirtualModuleId);
       if (module) {
         ctx.server.moduleGraph.invalidateModule(module);

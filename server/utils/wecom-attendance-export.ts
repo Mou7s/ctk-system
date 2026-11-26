@@ -1,5 +1,6 @@
-import * as XLSX from 'xlsx-js-style'
+import type * as XLSX from 'xlsx-js-style'
 import { setResponseHeader, type H3Event } from 'h3'
+import { getXlsxStyleSync } from './lazy-deps'
 import type { WecomAttendanceReport } from './wecom-attendance-calc'
 
 const TITLE_FILL = 'FFD9E1F2'
@@ -30,6 +31,7 @@ function styleTableSheet(
 ) {
   const ref = ws['!ref']
   if (!ref) return
+  const XLSX = getXlsxStyleSync()
   const range = XLSX.utils.decode_range(ref)
   const titleRowIdx = options.titleRowIdx
   const headerRowIdx = options.headerRowIdx ?? 0
@@ -99,6 +101,7 @@ function formatSummaryRemark(
 }
 
 export function buildWecomAttendanceWorkbook(report: WecomAttendanceReport): XLSX.WorkBook {
+  const XLSX = getXlsxStyleSync()
   const wb = XLSX.utils.book_new()
   const { startDate, endDate } = report.meta
   const periodLabel = startDate && endDate && startDate.slice(0, 7) === endDate.slice(0, 7)
@@ -244,6 +247,7 @@ export function buildWecomAttendanceWorkbook(report: WecomAttendanceReport): XLS
 }
 
 export function sendWecomAttendanceExcel(event: H3Event, report: WecomAttendanceReport, fileName: string) {
+  const XLSX = getXlsxStyleSync()
   const wb = buildWecomAttendanceWorkbook(report)
   const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
   setResponseHeader(event, 'Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

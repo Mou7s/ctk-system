@@ -1,6 +1,6 @@
 import { getHeader, getRouterParam, readMultipartFormData, type H3Event } from 'h3'
 import type { PoolConnection } from 'mysql2/promise'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync } from './lazy-deps'
 import type { AuthSession } from './auth'
 import { mysqlQueryOptions } from './mysql'
 import { apiSuccess } from './response'
@@ -280,6 +280,7 @@ function excelDate(value: unknown): string | null {
 }
 
 function parseImportRows(file: { filename?: string; data: Uint8Array }) {
+  const XLSX = getXlsxSync()
   const workbook = XLSX.read(Buffer.from(file.data), { type: 'buffer', cellDates: false })
   const sheetName = workbook.SheetNames[0]
   if (!sheetName) writeFail('Excel 中没有可读取的工作表')

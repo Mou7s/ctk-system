@@ -1,26 +1,6 @@
 ﻿@import "tailwindcss";
 @import "@nuxt/ui";
 
-/* 业务代码源（apps/web/src/...），用于扫出页面里实际写出来的类 */
-@source "../../**/*.{vue,js}";
-
-/* workspace 共享 UI 组件 */
-@source "../../../packages/ui/src/**/*.vue";
-
-/* Nuxt 自身项目（apps/nuxt-web/...）下页面/组件/插件等 */
-@source "../../../../nuxt-web/pages/**/*.{vue,ts,js}";
-@source "../../../../nuxt-web/components/**/*.{vue,ts,js}";
-@source "../../../../nuxt-web/plugins/**/*.{vue,ts,js}";
-@source "../../../../nuxt-web/composables/**/*.{ts,js}";
-@source "../../../../nuxt-web/middleware/**/*.{ts,js}";
-@source "../../../../nuxt-web/layouts/**/*.{vue,ts,js}";
-@source "../../../../nuxt-web/.nuxt/ui/**/*.ts";
-@source "../../../../nuxt-web/.nuxt/components.d.ts";
-@source "../../../../nuxt-web/.nuxt/imports.d.ts";
-
-/* @iconify-json/lucide：i-lucide:* iconify 类的解析 */
-@source "../../../../node_modules/@iconify-json/lucide/icons.json";
-
 @variant dark (&:where(html.dark, html.dark *));
 
 @theme {
@@ -52,7 +32,6 @@
 
 @import "./transition.css";
 @import "./sidebar.css";
-@import "./noto-sans-sc.css";
 
 @import "./legacy-layout.css";
 @import "./dark.css";

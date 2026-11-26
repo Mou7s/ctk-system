@@ -7,7 +7,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { getHeader, getQuery, getRouterParam, readMultipartFormData, setHeader, type H3Event } from 'h3'
 import { unzipSync, zipSync } from 'fflate'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync, loadXlsx } from './lazy-deps'
 import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise'
 import { getNitroServerConfig } from './runtime'
 import { apiError, apiSuccess, apiSuccessFields } from './response'
@@ -1414,6 +1414,7 @@ function excelDateSerial(value: unknown): number | null {
 }
 
 function cloneWorksheetRow(sheet: any, sourceRow: number, targetRow: number, maxColumn = 21) {
+  const XLSX = getXlsxSync()
   for (let column = 0; column <= maxColumn; column += 1) {
     const sourceAddress = XLSX.utils.encode_cell({ r: sourceRow - 1, c: column })
     const targetAddress = XLSX.utils.encode_cell({ r: targetRow - 1, c: column })
@@ -1435,6 +1436,7 @@ function cloneWorksheetRow(sheet: any, sourceRow: number, targetRow: number, max
 }
 
 function ensureWorksheetRow(sheet: any, row: number, detailStartRow = 6) {
+  const XLSX = getXlsxSync()
   const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : { e: { r: detailStartRow - 1, c: 14 } }
   if (row <= range.e.r + 1) return
   const sourceRow = Math.min(detailStartRow, range.e.r + 1)
@@ -1519,6 +1521,7 @@ function buildQuotationTemplateTermFields(header: any, options: { blank?: boolea
 }
 
 export function populateQuotationWorkbook(workbook: any, header: any, rawLines: any[]) {
+  const XLSX = getXlsxSync()
   const sheetName = String(header.source_sheet_name || workbook.SheetNames[0] || '')
   const sheet = workbook.Sheets[sheetName] || workbook.Sheets[workbook.SheetNames[0]]
   if (!sheet) throw new Error('报价单工作表不存在')
@@ -1927,6 +1930,7 @@ function quotationExportValues16Col(header: any, rawLine: any) {
 }
 
 export function buildQuotationTemplateWorkbook(templateBuffer: Uint8Array, header: any, rawLines: any[], options: { blank?: boolean } = {}): Buffer {
+  const XLSX = getXlsxSync()
   const files = unzipSync(templateBuffer)
   removeLegacyQuotationTemplateParts(files)
   removeWorkbookCalcChain(files)
@@ -2097,6 +2101,7 @@ export function buildDomesticQuotationTemplateWorkbook(
   const encoder = new TextEncoder()
   let sheetXml = decoder.decode(sheetBytes)
   const blank = options.blank === true
+  const XLSX = getXlsxSync()
   const templateBook = XLSX.read(templateBuffer, { type: 'buffer' })
   const templateRows = XLSX.utils.sheet_to_json(templateBook.Sheets[templateBook.SheetNames[0]], { header: 1 }) as unknown[][]
   const approvedLayout = templateRows.some(row => row.some(cell => String(cell).includes('品号')))
@@ -2712,6 +2717,7 @@ export async function exportQuotationAnalysis(event: H3Event, businessType: Quot
             ]
           }),
         ]
+    const XLSX = await loadXlsx()
     const workbook = XLSX.utils.book_new()
     const sheet = XLSX.utils.aoa_to_sheet(data)
     sheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: data.length - 1, c: data[0].length - 1 } }) }

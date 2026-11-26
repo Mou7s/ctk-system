@@ -1,5 +1,5 @@
 import { domesticPriceToKpcs, domesticQuotationUnit } from '../../app/packages/shared/domesticQuotationUnits.js'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync } from './lazy-deps'
 import { DEFAULT_QUOTATION_UNIT, formatQuotationOptionViolations, normalizeQuotationOptionValue, quotationOptionViolations } from './quotation-options'
 import { extractQuotationValidity, normalizeQuotationValidity } from './quotation-validity'
 import { isCurrentQuotationTemplateHeader } from '../../app/packages/shared/quotationColumns.js'
@@ -158,7 +158,7 @@ function dateText(value: unknown): string | null {
     // 门槛与页面（app/packages/shared/quotationGrid.js）和交期列一致：小的数字不是日期序列号。
     // 报价日期这一列填「2」多半是把序号/天数填错列，不能再像以前那样悄悄变成 1900-01-02。
     if (!Number.isFinite(value) || value <= 20000) return null
-    const parsed = (XLSX as any).SSF?.parse_date_code?.(value)
+    const parsed = (getXlsxSync() as any).SSF?.parse_date_code?.(value)
     if (parsed?.y && parsed?.m && parsed?.d) {
       return `${String(parsed.y).padStart(4, '0')}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`
     }
@@ -532,6 +532,7 @@ export function parseQuotationWorkbook(
   options: { requireLatestTemplate?: boolean } = {},
 ): ParsedQuotationWorkbook {
   if (!/\.xlsx$/iu.test(originalFilename)) throw new Error('报价单只支持 .xlsx 文件')
+  const XLSX = getXlsxSync()
   const workbook = XLSX.read(Buffer.from(data), { type: 'buffer', cellDates: true, cellStyles: true })
   const sheetName = workbook.SheetNames[0]
   if (!sheetName) throw new Error('报价单没有可读取的工作表')
@@ -650,6 +651,7 @@ export function parseQuotationWorkbook(
  */
 export function parseDomesticQuotationWorkbook(data: Uint8Array, originalFilename = '内贸销售报价单模板.xlsx'): ParsedQuotationWorkbook {
   if (!/\.xlsx$/iu.test(originalFilename)) throw new Error('内贸报价单只支持 .xlsx 文件')
+  const XLSX = getXlsxSync()
   const workbook = XLSX.read(Buffer.from(data), { type: 'buffer', cellDates: true, cellStyles: true })
   const sheetName = workbook.SheetNames[0]
   if (!sheetName) throw new Error('内贸报价单没有可读取的工作表')

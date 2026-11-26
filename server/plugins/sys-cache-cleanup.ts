@@ -1,4 +1,5 @@
 import { getMysqlPool, mysqlQueryOptions } from '../utils/mysql'
+import { skipHeavySchedulerInDev } from '../utils/nitro-jobs/dev-guard'
 import { errorMessage } from '../utils/response'
 import { ensureCacheTable } from '../utils/redis'
 
@@ -32,6 +33,7 @@ type CleanupState = {
 type CleanupGlobal = typeof globalThis & { __ctkSysCacheCleanup?: CleanupState }
 
 export default defineNitroPlugin(() => {
+  if (skipHeavySchedulerInDev('NitroSysCacheCleanup')) return
   const globalState = globalThis as CleanupGlobal
   if (globalState.__ctkSysCacheCleanup) return
   const state: CleanupState = { running: false }

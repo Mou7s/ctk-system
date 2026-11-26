@@ -1,5 +1,4 @@
-import sql from 'mssql'
-import { queryK3SqlServer, sqlStringParameter } from './sqlserver'
+import { queryK3SqlServer, sqlIntParameter, sqlStringParameter } from './sqlserver'
 
 type MoQuery = Record<string, unknown>
 
@@ -150,8 +149,8 @@ export async function queryMoData(input: MoQuery = {}): Promise<MoPage> {
   const offset = (pageNum - 1) * pageSize
   const keys = await queryK3SqlServer<{ fid: unknown }>(async (request) => {
     bindFilters(request, filters)
-    request.input('moOffset', sql.Int, offset)
-    request.input('moPageSize', sql.Int, pageSize)
+    sqlIntParameter(request, 'moOffset', offset)
+    sqlIntParameter(request, 'moPageSize', pageSize)
     return request.query(
       `SELECT op.FID AS fid ${MO_FROM_JOINS} ${where} `
       + 'GROUP BY op.FID ORDER BY MAX(op.FMONumber) DESC, MAX(op.FMOEntrySeq) ASC '
@@ -164,7 +163,7 @@ export async function queryMoData(input: MoQuery = {}): Promise<MoPage> {
     bindFilters(request, filters)
     const names = keys.map((key, index) => {
       const name = `moFid${index}`
-      request.input(name, sql.Int, numberValue(key.fid))
+      sqlIntParameter(request, name, numberValue(key.fid))
       return `@${name}`
     })
     return request.query(`

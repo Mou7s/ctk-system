@@ -58,6 +58,18 @@ function hasAnyPerm(session: AuthSession, perms: string[]): boolean {
   return perms.some((perm) => hasPermission(session, perm))
 }
 
+const IT_ASSET_DEPT_UNIFY_MAP: Record<string, string> = {
+  国际一部: '国际销售部',
+  国际二部: '国际销售部',
+  国际部: '国际销售部',
+}
+
+export function normalizeItAssetDept(value: unknown): string {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return ''
+  return IT_ASSET_DEPT_UNIFY_MAP[trimmed] || trimmed
+}
+
 export function formatItAssetNoFromSeq(seq: number): string {
   const normalized = Number.isFinite(seq) && seq > 0 ? Math.floor(seq) : 1
   return `TK-PC-${String(normalized).padStart(4, '0')}`
@@ -240,11 +252,11 @@ export async function getItAssetOptions(event: H3Event) {
 
     const deptSet = new Set<string>()
     for (const row of wxDepts) {
-      const val = String(row.dept || '').trim()
+      const val = normalizeItAssetDept(row.dept)
       if (val) deptSet.add(val)
     }
     for (const row of sysDepts) {
-      const val = String(row.dept_name || '').trim()
+      const val = normalizeItAssetDept(row.dept_name)
       if (val) deptSet.add(val)
     }
     const assetDeptSet = new Set<string>()
@@ -259,7 +271,7 @@ export async function getItAssetOptions(event: H3Event) {
     const employeeOptions = employees.map((row) => ({
       userid: String(row.userid || ''),
       name: String(row.name || ''),
-      dept: String(row.dept || ''),
+      dept: normalizeItAssetDept(row.dept),
       position: String(row.position || ''),
     }))
 
@@ -285,7 +297,11 @@ export async function exportItAssets(event: H3Event) {
     const mergedFilter = { ...query, ...body }
     const { sql, params } = buildItAssetFilter(mergedFilter)
     const [rows] = await getMysqlPool().query<RowDataPacket[]>(
-      mysqlQueryOptions(`SELECT ${SELECT_COLUMNS} FROM tk_it_asset ${sql} ORDER BY id DESC LIMIT ?`),
+      mysqlQueryOptions(
+        `SELECT ${SELECT_COLUMNS} FROM tk_it_asset ${sql}
+         ORDER BY asset_no ASC, id ASC
+         LIMIT ?`,
+      ),
       [...params, EXPORT_MAX_ROWS],
     )
     const camelized = camelizeRows(rows)

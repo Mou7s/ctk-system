@@ -1218,7 +1218,9 @@ import {
   QUOTATION_VALIDITY_OPTIONS,
   QUOTATION_VALIDITY_PATTERN_SOURCE,
 } from '@ctk-system/shared'
-import { TkQuotationGrid, TkQuotationLineCards, isRepeatClick, resolveRowFromDoubleClick } from '@ctk-system/ui'
+import TkQuotationGrid from '@/packages/ui/TkQuotationGrid.vue'
+import TkQuotationLineCards from '@/packages/ui/TkQuotationLineCards.vue'
+import { isRepeatClick, resolveRowFromDoubleClick } from '@ctk-system/ui'
 import { useTkAutoRefresh } from '@/packages/composables/useTkAutoRefresh.js'
 import {
   checkQuotationEndUserConflict,

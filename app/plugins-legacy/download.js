@@ -1,4 +1,3 @@
-import { saveAs } from 'file-saver'
 import errorCode from '@/utils/errorCode'
 import { blobValidate } from '@/utils/helpers'
 
@@ -74,7 +73,8 @@ export default {
         toastError('下载文件出现错误，请联系管理员！')
       })
   },
-  saveAs(text, name, opts) {
+  async saveAs(text, name, opts) {
+    const { saveAs } = await import('file-saver')
     saveAs(text, name, opts)
   },
   async printErrMsg(data) {

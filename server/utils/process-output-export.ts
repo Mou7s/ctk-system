@@ -1,5 +1,5 @@
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { loadXlsx } from './lazy-deps'
 import { queryProcessOutputSummary } from './process-output-read'
 
 type Query = Record<string, unknown>
@@ -84,6 +84,7 @@ export async function exportProcessOutputSummary(event: H3Event) {
   const name = reportName(query.periodType)
   const tablePart = query.tableName ? `_${String(query.tableName)}` : ''
   const fileName = `${summary.reportDate || ''}${tablePart}_工序产量${name}.xlsx`
+  const XLSX = await loadXlsx()
   const sheet = XLSX.utils.aoa_to_sheet(rowsForSummary(summary))
   sheet['!cols'] = [{ wch: 20 }]
   const maxProcesses = Math.max(0, ...(summary.tables || []).map((table: any) => table.processes?.length || 0))

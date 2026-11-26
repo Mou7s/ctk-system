@@ -45,7 +45,12 @@ vi.mock('../../server/utils/read.ts', async () => {
   }
 })
 
-import { getItAssetOptions, isItAssetLoadAllQuery, listItAssets } from '../../server/utils/it-asset-read.ts'
+import {
+  getItAssetOptions,
+  isItAssetLoadAllQuery,
+  listItAssets,
+  normalizeItAssetDept,
+} from '../../server/utils/it-asset-read.ts'
 
 describe('IT asset read utils & all=true support', () => {
   beforeEach(() => {
@@ -108,10 +113,13 @@ describe('IT asset read utils & all=true support', () => {
     state.rowsResult = []
     const origQuery = state.sqlCalls
     const mockMap = new Map([
-      ['FROM sys_dept', [{ dept_name: '供应链中心' }, { dept_name: '品质部' }]],
-      ['DISTINCT dept FROM wxuser', [{ dept: '供应链中心' }, { dept: '物控' }]],
+      ['FROM sys_dept', [{ dept_name: '供应链中心' }, { dept_name: '品质部' }, { dept_name: '国际一部' }]],
+      ['DISTINCT dept FROM wxuser', [{ dept: '供应链中心' }, { dept: '物控' }, { dept: '国际一部' }]],
       ['DISTINCT use_dept FROM tk_it_asset', [{ use_dept: '物控' }, { use_dept: '品质部' }]],
-      ['FROM wxuser WHERE status', [{ userid: 'LiuJia', name: '刘佳', dept: '物控', position: '跟单' }]],
+      ['FROM wxuser WHERE status', [
+        { userid: 'LiuJia', name: '刘佳', dept: '物控', position: '跟单' },
+        { userid: 'DemoIntl', name: '示例外贸员', dept: '国际一部', position: '外贸销售' },
+      ]],
       ['REGEXP', [{ asset_no: 'TK-PC-0120' }]],
     ])
     state.customQuery = (sql) => {
@@ -128,6 +136,13 @@ describe('IT asset read utils & all=true support', () => {
     expect(res.data.assetDeptOptions).not.toContain('供应链中心')
     expect(res.data.deptOptions).toContain('供应链中心')
     expect(res.data.deptOptions).toContain('品质部')
+    expect(res.data.deptOptions).toContain('国际销售部')
+    expect(res.data.deptOptions).not.toContain('国际一部')
+    expect(res.data.employeeOptions.find((e) => e.userid === 'DemoIntl')?.dept).toBe('国际销售部')
+    expect(normalizeItAssetDept('国际一部')).toBe('国际销售部')
+    expect(normalizeItAssetDept('国际二部')).toBe('国际销售部')
+    expect(normalizeItAssetDept('国际部')).toBe('国际销售部')
+    expect(normalizeItAssetDept('品质部')).toBe('品质部')
     expect(origQuery.length).toBeGreaterThan(0)
   })
 })

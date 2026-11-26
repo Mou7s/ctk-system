@@ -1,6 +1,7 @@
-import * as XLSX from 'xlsx-js-style'
+import type * as XLSX from 'xlsx-js-style'
 import { strToU8, unzipSync, zipSync } from 'fflate'
 import { setResponseHeader, type H3Event } from 'h3'
+import { getXlsxStyleSync } from './lazy-deps'
 import type { DepartmentStat, LeaveReasonStat } from './wecom-employment-summary'
 import {
   EMPLOYMENT_CHART_DRAWING,
@@ -57,6 +58,7 @@ function thinBorder() {
 }
 
 function paintCell(worksheet: XLSX.WorkSheet, r: number, c: number, style: XLSX.CellStyle) {
+  const XLSX = getXlsxStyleSync()
   const ref = XLSX.utils.encode_cell({ r, c })
   const cell = worksheet[ref] as XLSX.CellObject | undefined
   if (!cell) return
@@ -122,6 +124,7 @@ export function sendWecomEmploymentExcel(
       ])
     }
   }
+  const XLSX = getXlsxStyleSync()
   const worksheet = XLSX.utils.aoa_to_sheet(data)
   const merges = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }]
   if (reasonStats.length) merges.push({ s: { r: reasonTitleRow, c: 0 }, e: { r: reasonTitleRow, c: 6 } })
@@ -266,6 +269,7 @@ function buildChartDataSheet(rows: DepartmentStat[], reasonStats: LeaveReasonSta
     setCell(r, 3, row.code || '-')
     setCell(r, 4, Number(row.count || 0))
   })
+  const XLSX = getXlsxStyleSync()
   return {
     sheet: XLSX.utils.aoa_to_sheet(grid),
     hireCount: hireRows.length,
@@ -284,7 +288,7 @@ function narrowChartRange(xml: string, col: string, firstRow: number, lastRow: n
 // 把原生图表部件注入 xlsx 包：加 chart/drawing 文件，补 rels 与内容类型，挂载到“分布图”表
 export function injectEmploymentCharts(
   source: Uint8Array | Buffer,
-  plan: EmploymentChartPlan = { sheet: XLSX.utils.aoa_to_sheet([[]]), hireCount: 0, leaveCount: 0, reasonCount: 0, unfilledIndex: -1 },
+  plan: EmploymentChartPlan = { sheet: getXlsxStyleSync().utils.aoa_to_sheet([[]]), hireCount: 0, leaveCount: 0, reasonCount: 0, unfilledIndex: -1 },
 ): Uint8Array {
   const files = unzipSync(new Uint8Array(source))
   const text = (name: string): string => new TextDecoder().decode(files[name])

@@ -1,0 +1,15 @@
+# Non-source directories and test files ignored by Nuxt scanner & watcher
+# Leading "/" anchors each rule to the repo root so nested paths like
+# node_modules/@nuxt/ui/dist/runtime/ are never ignored.
+/outputs/
+/logs/
+/runtime/
+/db/
+/tools/
+/docs/
+/scratch/
+/.agents/
+/.private/
+/.output/
+/app/__tests__/
+/public/fonts/

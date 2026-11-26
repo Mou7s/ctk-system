@@ -1,6 +1,6 @@
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
 import type { Pool, RowDataPacket } from 'mysql2/promise'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync } from './lazy-deps'
 import { getMysqlPool, mysqlQueryOptions } from './mysql'
 import { dataScopeFragment, queryNumber, queryText, withReadSession } from './read'
 
@@ -98,6 +98,7 @@ function sendExcel(
   headers: string[],
   rows: unknown[][],
 ) {
+  const XLSX = getXlsxSync()
   const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, sheet, sheetName)

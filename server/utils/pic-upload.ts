@@ -1,7 +1,7 @@
 import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import sharp from 'sharp'
+import { loadSharp } from './lazy-deps'
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const MAX_THUMBNAIL_BYTES = 500 * 1024
@@ -40,6 +40,13 @@ function datePath(date: Date): string {
 }
 
 async function thumbnailBuffer(source: Buffer, extension: string): Promise<Buffer> {
+  if (extension === 'bmp') {
+    // sharp can read the common upload formats but does not emit BMP.
+    // Keep the original extension/path contract for BMP uploads.
+    return source
+  }
+
+  const sharp = await loadSharp()
   let output = source
 
   for (const maxSize of THUMBNAIL_SIZES) {

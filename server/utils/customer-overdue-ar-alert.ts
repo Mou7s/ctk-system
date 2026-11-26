@@ -1,5 +1,5 @@
-import XLSX from 'xlsx-js-style'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
+import { getXlsxStyleSync } from './lazy-deps'
 import { queryCustomerOverdueAr } from './customer-overdue-ar'
 import { readAlertMembers } from './sales-delivery-alert-read'
 import { matchMember, shanghaiClock, type AlertMember } from './sales-delivery-alert-model'
@@ -56,6 +56,7 @@ export function overdueRecipientPlans(rows: ArRow[], members: AlertMember[], tot
 }
 
 export function renderOverdueAlertExcel(rows: ArRow[], name: string, day: string): Uint8Array {
+  const XLSX = getXlsxStyleSync()
   const headers = ['客户编码', '客户名称', '币种', '逾期未收金额', '逾期单据数', '最早到期日', '最长逾期天数', '平均逾期天数', '跟单员', '跟单员1', '跟单员2', '销售员', '备注']
   const sheet = XLSX.utils.aoa_to_sheet([
     [`${name}的客户逾期应收 · ${day}`],

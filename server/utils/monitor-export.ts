@@ -1,6 +1,6 @@
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
 import type { Pool, RowDataPacket } from 'mysql2/promise'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync } from './lazy-deps'
 import { getMysqlPool, mysqlQueryOptions } from './mysql'
 import { queryText, withReadSession } from './read'
 
@@ -109,6 +109,7 @@ function translated(input: unknown, labels: Record<string, string>) {
 }
 
 function sendExcel(event: H3Event, fileName: string, sheetName: string, headers: string[], rows: unknown[][]) {
+  const XLSX = getXlsxSync()
   const workbook = XLSX.utils.book_new()
   const sheetCount = Math.max(1, Math.ceil(rows.length / EXPORT_SHEET_SIZE))
   for (let index = 0; index < sheetCount; index += 1) {

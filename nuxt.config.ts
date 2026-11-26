@@ -3,17 +3,42 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { loadEnv } from "vite";
 import createSvgIcon from "./vite/plugins/svg-icon.js";
 import { staticNavigation } from "./app/router/static-navigation.js";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const webSrc = path.resolve(rootDir, "app");
-const repoRoot = path.resolve(rootDir, "..");
 const require = createRequire(path.join(rootDir, "package.json"));
-const envMode = process.env.NODE_ENV === "production" ? "production" : "development";
-const releaseVersion = envMode === "production" ? randomUUID() : "development";
-const fileEnv = loadEnv(envMode, rootDir, "");
+const isProd = process.env.NODE_ENV === "production";
+const envMode = isProd ? "production" : "development";
+const devSsrEnabled = isProd || process.env.NUXT_DEV_SSR === "1";
+const devServerSourcemap = process.env.NUXT_DEV_SERVER_SOURCEMAP === "1";
+const releaseVersion = isProd ? randomUUID() : "development";
+
+function loadEnvFiles(mode: string, dir: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const files = [".env", ".env.local", `.env.${mode}`, `.env.${mode}.local`];
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    if (!fs.existsSync(filePath)) continue;
+    const raw = fs.readFileSync(filePath, "utf8");
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx <= 0) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let val = trimmed.slice(eqIdx + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
+const fileEnv = loadEnvFiles(envMode, rootDir);
 
 function resolveProfilePath() {
   const configured = process.env.NUXT_PROFILE_PATH
@@ -71,17 +96,17 @@ function collectStaticRouteMeta(routes: any[], result = new Map<string, Record<s
 const staticRouteMeta = collectStaticRouteMeta(staticNavigation);
 
 export default defineNuxtConfig({
-  ssr: true,
+  ssr: devSsrEnabled,
   devServer: {
     // Default to IPv4 loopback on Windows so Bun/listhen does not bind IPv6-only ([::1]),
     // which fails under local proxy/TUN filters when Chrome falls back to 127.0.0.1.
     host: process.env.NUXT_HOST || process.env.NITRO_HOST || process.env.HOST || "127.0.0.1",
   },
-  sourcemap: process.env.NODE_ENV === "production"
+  sourcemap: isProd
     ? (process.env.NUXT_BUILD_DEBUG_MAPS === "1"
         ? { server: true, client: true }
         : { server: false, client: false })
-    : { server: true, client: true },
+    : { server: devServerSourcemap, client: true },
   compatibilityDate: "2026-07-04",
   future: {
     compatibilityVersion: 4,
@@ -100,18 +125,23 @@ export default defineNuxtConfig({
   },
 
   // The admin area still contains browser-only pages and a
-  // large client-side route graph. Keep the public login page SSR, but let
-  // the authenticated SPA shell render in the browser during migration.
-  // Individual routes can opt back into SSR after their browser-only
-  // dependencies have been migrated.
-  routeRules: {
-    "/**": { ssr: false },
-    "/login": { ssr: true },
-  },
+  // large client-side route graph. Keep the public login page SSR in production,
+  // and allow opting in during dev via NUXT_DEV_SSR=1.
+  routeRules: devSsrEnabled
+    ? {
+        "/**": { ssr: false },
+        "/login": { ssr: true },
+      }
+    : {
+        "/**": { ssr: false },
+      },
 
   app: {
     head: {
       title: process.env.NUXT_PUBLIC_APP_TITLE || process.env.VITE_APP_TITLE || "Enterprise Admin",
+      link: [
+        { rel: "stylesheet", href: "/fonts/noto-sans-sc/index.css" },
+      ],
       meta: [
         { name: "theme-color", content: "#f0f2f5", media: "(prefers-color-scheme: light)" },
         { name: "theme-color", content: "#0f1114", media: "(prefers-color-scheme: dark)" },
@@ -200,14 +230,13 @@ export default defineNuxtConfig({
     "@ctk-system/ui": path.resolve(rootDir, "app/packages/ui/index.js"),
     "@ctk-system/api": path.resolve(rootDir, "app/packages/api/index.js"),
   },
-  modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-easy-lightbox", "nuxt-echarts"],
-  // Auto-import / global-register shared list shells (TkSearchPanel, TkToolbar, …)
+  modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-easy-lightbox"],
+  // Auto-import shared list shells (TkSearchPanel, TkToolbar, …) on demand
   components: [
     {
       path: path.resolve(rootDir, "app/packages/ui"),
       pathPrefix: false,
       extensions: ["vue"],
-      global: true,
     },
   ],
   colorMode: {
@@ -227,21 +256,17 @@ export default defineNuxtConfig({
   icon: {
     provider: "server",
     serverBundle: "local",
-    clientBundle: {
-      scan: true,
-      sizeLimitKb: 1024,
-    },
+    clientBundle: isProd
+      ? {
+          scan: {
+            globInclude: ["app/**/*.{vue,js,ts}"],
+          },
+          sizeLimitKb: 1024,
+        }
+      : {
+          scan: false,
+        },
     fallbackToApi: false,
-  },
-  echarts: {
-    renderer: "canvas",
-    charts: ["BarChart"],
-    components: [
-      "GridComponent",
-      "MarkLineComponent",
-      "TitleComponent",
-      "TooltipComponent",
-    ],
   },
   pinia: {
     storesDirs: [],
@@ -266,30 +291,61 @@ export default defineNuxtConfig({
     },
     optimizeDeps: {
       include: [
+        "vue",
+        "vue-router",
+        "pinia",
         "dayjs",
-        "dayjs/plugin/localeData.js",
-        "dayjs/plugin/customParseFormat.js",
-        "dayjs/plugin/advancedFormat.js",
-        "dayjs/plugin/weekOfYear.js",
-        "dayjs/plugin/weekYear.js",
-        "dayjs/plugin/dayOfYear.js",
-        "dayjs/plugin/isSameOrAfter.js",
-        "dayjs/plugin/isSameOrBefore.js",
-        "lodash-unified",
         "js-cookie",
         "file-saver",
         "jsencrypt",
         "fuse.js",
+        "vue-easy-lightbox",
+        "reka-ui",
+        "tailwind-variants",
+        "@floating-ui/vue",
+        "@tanstack/vue-table",
         "@internationalized/date",
         "@vueuse/core",
-        "@wangeditor/editor",
-        "@wangeditor/editor-for-vue",
-        "xlsx/xlsx.mjs",
+        "@unhead/vue",
+        "ofetch",
+        "ufo",
+        "h3",
+        "defu",
+        "ohash",
+        "destr",
+        "cookie-es",
+        "hookable",
+        "unctx",
+        "scule",
+        "klona",
       ],
     },
     server: {
       fs: {
-        allow: [repoRoot],
+        allow: [rootDir],
+      },
+      warmup: {
+        clientFiles: [
+          "./app.vue",
+          "./pages/login.vue",
+          "./assets/styles/tailwind.css",
+        ],
+      },
+      watch: {
+        ignored: [
+          "**/outputs/**",
+          "**/logs/**",
+          `${path.resolve(rootDir, "runtime").replaceAll("\\", "/")}/**`,
+          "**/db/**",
+          "**/tools/**",
+          "**/.agents/**",
+          "**/.private/**",
+          "**/scratch/**",
+          "**/docs/**",
+          "**/.output/**",
+          "**/app/__tests__/**",
+          "**/public/fonts/**",
+        ],
       },
     },
     build: {
@@ -301,7 +357,8 @@ export default defineNuxtConfig({
     // Nuxt 4.6 moved the renderer into nuxt/dist/runtime/server. Nitro 2 dev
     // must inline its absolute path so import.meta.dev and virtual manifests
     // are transformed rather than executed directly by Bun.
-    ...(process.env.NODE_ENV !== "production" ? {
+    ...(!isProd ? {
+      sourceMap: devServerSourcemap,
       externals: {
         inline: [(id: string) => /nuxt\/dist\/runtime\/server\//.test(id.replaceAll("\\", "/"))],
       },
@@ -334,6 +391,22 @@ export default defineNuxtConfig({
           page.meta = { ...page.meta, ...meta };
         }
       }
+    },
+    "vite:extendConfig"(config, { isClient }) {
+      if (!isClient || isProd) return;
+      // @nuxt/ui pushes "reka-ui" (598 ESM files) into build.transpile, which
+      // causes Nuxt Vite Builder to add it to optimizeDeps.exclude and flood
+      // the browser with hundreds of unbundled /_nuxt/@fs/* requests in dev.
+      const stripRekaExclude = (opt?: { exclude?: string[] }) => {
+        if (Array.isArray(opt?.exclude)) {
+          opt.exclude = opt.exclude.filter((dep) => dep !== "reka-ui");
+        }
+      };
+      stripRekaExclude(config.optimizeDeps);
+      stripRekaExclude(
+        (config as { environments?: { client?: { optimizeDeps?: { exclude?: string[] } } } })
+          .environments?.client?.optimizeDeps,
+      );
     },
   },
   // "vite:extendConfig"(config, { isClient }) {

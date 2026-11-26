@@ -1,6 +1,6 @@
-import XLSX from 'xlsx-js-style'
 import { domesticQuotationUnit, domesticPriceToPcs, domesticPackToPcs } from '../../app/packages/shared/domesticQuotationUnits.js'
 import type { Pool, RowDataPacket } from 'mysql2/promise'
+import { getXlsxStyleSync } from './lazy-deps'
 import { getMysqlPool, mysqlQueryOptions } from './mysql'
 import { shanghaiClock } from './sales-delivery-alert-model'
 import { readWecomConfig, uploadWarningExcelMedia, sendFileToUser } from './nitro-jobs/kucun-warning-send'
@@ -49,6 +49,7 @@ function localDateTime(value: unknown) {
 }
 
 export function renderMonthlyQuotationExcel(rows: MonthlyQuotationRow[], period: ReturnType<typeof monthlyQuotationPeriod>) {
+  const XLSX = getXlsxStyleSync()
   rows = rows.map(row => {
     const kind = domesticQuotationUnit(row.report_unit)
     return { ...row, report_unit: kind ? 'PCS' : '待核对',

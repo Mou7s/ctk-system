@@ -1,5 +1,5 @@
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { loadXlsx } from './lazy-deps'
 import { querySampleProgressExportRows } from './sample-progress-read'
 import { apiError } from './response'
 import { withReadPermissionSession } from './read'
@@ -26,6 +26,7 @@ export async function exportSampleProgress(event: H3Event) {
   return withReadPermissionSession(event, 'SampleProgressExport', SAMPLE_PROGRESS_QUERY_PERMISSION, async (_, pool) => {
     const rows = await querySampleProgressExportRows(pool, query)
     const output = rows.map((row) => Object.fromEntries(columns.map(([label, key]) => [label, row[key] ?? ''])))
+    const XLSX = await loadXlsx()
     const sheet = XLSX.utils.json_to_sheet(output, { header: columns.map(([label]) => label) })
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, sheet, '客户样品进度')

@@ -1,31 +1,134 @@
 import type { NitroJobDef } from './types'
-import { kucunFullJob } from './kucun-full'
-import { kucunDiffJob } from './kucun-diff'
-import { suggestPushJob } from './suggest-push'
-import { approveSyncJob } from './approve-sync'
-import { approve7dJob } from './approve-7d'
-import { kucunWarningPushJob } from './kucun-warning-push'
-import { broadcastSyncJob } from './broadcast-sync'
-import { uploadPathJob } from './upload-path'
-import { overdueFreezeJob } from './overdue-freeze'
-import { kucunSnapshotJob } from './kucun-snapshot'
-import { wecomEmployeeSyncJob } from './wecom-employee-sync'
 
 /**
  * 旧 sys_job 统一注册表（102/110 已有独立插件，不在此列，避免重复调度）。
+ * 各任务执行体在 run() 时按需动态导入，避免 dev 启动期把所有任务及下游依赖拉入插件入口。
  */
 export const NITRO_JOBS: NitroJobDef[] = [
-  kucunFullJob,
-  kucunDiffJob,
-  suggestPushJob,
-  approveSyncJob,
-  approve7dJob,
-  kucunWarningPushJob,
-  broadcastSyncJob,
-  uploadPathJob,
-  overdueFreezeJob,
-  kucunSnapshotJob,
-  wecomEmployeeSyncJob,
+  {
+    key: 'kucunFullSync',
+    jobId: 103,
+    name: 'D栋库存同步（全量）',
+    oldTarget: 'TkTask.updateAllKucun()',
+    nitroTarget: 'Nitro.kucunFullSync()',
+    intervalMs: 3_600_000,
+    skipScheduler: true,
+    configKey: 'nitro.job.kucunFullSync',
+    envKey: 'NUXT_NITRO_JOB_KUCUN_FULL_SYNC',
+    run: async (dryRun) => (await import('./kucun-full')).kucunFullJob.run(dryRun),
+  },
+  {
+    key: 'kucunDiffSync',
+    jobId: 106,
+    name: 'D栋库存同步（差异）',
+    oldTarget: 'TkTask.updatePartKucun()',
+    nitroTarget: 'Nitro.kucunDiffSync()',
+    intervalMs: 900_000,
+    skipScheduler: true,
+    configKey: 'nitro.job.kucunDiffSync',
+    envKey: 'NUXT_NITRO_JOB_KUCUN_DIFF_SYNC',
+    run: async (dryRun) => (await import('./kucun-diff')).kucunDiffJob.run(dryRun),
+  },
+  {
+    key: 'suggestPush',
+    jobId: 107,
+    name: '发送消息到企微，匿名意见',
+    oldTarget: 'TkTask.sendSuggestMsg()',
+    nitroTarget: 'Nitro.suggestPush()',
+    intervalMs: 86_400_000,
+    configKey: 'nitro.job.suggestPush',
+    envKey: 'NUXT_NITRO_JOB_SUGGEST_PUSH',
+    run: async (dryRun) => (await import('./suggest-push')).suggestPushJob.run(dryRun),
+  },
+  {
+    key: 'approveSync',
+    jobId: 108,
+    name: '更新企微审批信息',
+    oldTarget: 'TkTask.saveApproveData()',
+    nitroTarget: 'Nitro.approveSync()',
+    intervalMs: 3_600_000,
+    configKey: 'nitro.job.approveSync',
+    envKey: 'NUXT_NITRO_JOB_APPROVE_SYNC',
+    run: async (dryRun) => (await import('./approve-sync')).approveSyncJob.run(dryRun),
+  },
+  {
+    key: 'approveSync7d',
+    jobId: 111,
+    name: '获取7天内的审批消息',
+    oldTarget: 'TkTask.saveApproveDataBySecond()',
+    nitroTarget: 'Nitro.approveSync7d()',
+    intervalMs: 300_000,
+    configKey: 'nitro.job.approveSync7d',
+    envKey: 'NUXT_NITRO_JOB_APPROVE_SYNC_7D',
+    run: async (dryRun) => (await import('./approve-7d')).approve7dJob.run(dryRun),
+  },
+  {
+    key: 'kucunWarningPush',
+    jobId: 112,
+    name: '金蝶库存上下限预警',
+    oldTarget: 'TkTask.sendKucunWarningTask()',
+    nitroTarget: 'Nitro.kucunWarningPush()',
+    intervalMs: 86_400_000,
+    configKey: 'nitro.job.kucunWarningPush',
+    envKey: 'NUXT_NITRO_JOB_KUCUN_WARNING_PUSH',
+    run: async (dryRun) => (await import('./kucun-warning-push')).kucunWarningPushJob.run(dryRun),
+  },
+  {
+    key: 'broadcastSync',
+    jobId: 113,
+    name: '同步广播计划',
+    oldTarget: 'TkTask.syncMusicBroadcastPlan()',
+    nitroTarget: 'Nitro.broadcastSync()',
+    intervalMs: 300_000,
+    configKey: 'nitro.job.broadcastSync',
+    envKey: 'NUXT_NITRO_JOB_BROADCAST_SYNC',
+    run: async (dryRun) => (await import('./broadcast-sync')).broadcastSyncJob.run(dryRun),
+  },
+  {
+    key: 'uploadPath',
+    jobId: 114,
+    name: 'UpdateUploadPath',
+    oldTarget: 'legacy.setProfile(uploadPath)',
+    nitroTarget: 'Nitro.uploadPath()',
+    intervalMs: 0,
+    configKey: 'nitro.job.uploadPath',
+    envKey: 'NUXT_NITRO_JOB_UPLOAD_PATH',
+    run: async (dryRun) => (await import('./upload-path')).uploadPathJob.run(dryRun),
+  },
+  {
+    key: 'overdueAutoFreeze',
+    jobId: 115,
+    name: '逾期客户自动冻结出库',
+    oldTarget: 'TkTask.autoFreezeOverdueCustomers',
+    nitroTarget: 'Nitro.overdueAutoFreeze()',
+    intervalMs: 86_400_000,
+    configKey: 'nitro.job.overdueAutoFreeze',
+    envKey: 'NUXT_NITRO_JOB_OVERDUE_AUTO_FREEZE',
+    run: async (dryRun) => (await import('./overdue-freeze')).overdueFreezeJob.run(dryRun),
+  },
+  {
+    key: 'kucunWarningSnapshot',
+    jobId: 116,
+    name: '同步金蝶库存预警快照',
+    oldTarget: 'TkTask.syncKucunWarningSnapshot',
+    nitroTarget: 'Nitro.kucunWarningSnapshot()',
+    intervalMs: 1_800_000,
+    configKey: 'nitro.job.kucunWarningSnapshot',
+    envKey: 'NUXT_NITRO_JOB_KUCUN_WARNING_SNAPSHOT',
+    run: async (dryRun) => (await import('./kucun-snapshot')).kucunSnapshotJob.run(dryRun),
+  },
+  {
+    key: 'wecomEmployeeSync',
+    jobId: 109,
+    name: '更新企微员工（通讯录）',
+    oldTarget: 'TkTask.syncWXUsers()',
+    nitroTarget: 'Nitro.wecomEmployeeSync()',
+    intervalMs: 3_600_000,
+    skipScheduler: true,
+    configKey: 'nitro.job.wecomEmployeeSync',
+    envKey: 'NUXT_NITRO_JOB_WECOM_EMPLOYEE_SYNC',
+    run: async (dryRun) => (await import('./wecom-employee-sync')).wecomEmployeeSyncJob.run(dryRun),
+  },
 ]
 
 export const NITRO_JOB_MAP = new Map(NITRO_JOBS.map((j) => [j.key, j]))

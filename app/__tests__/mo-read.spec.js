@@ -25,6 +25,7 @@ vi.mock('../../server/utils/sqlserver.ts', () => ({
     return result.recordset || []
   },
   sqlStringParameter: (request, name, value) => request.input(name, 'nvarchar', value),
+  sqlIntParameter: (request, name, value) => request.input(name, 'int', value),
 }))
 
 describe('queryMoData paging and grouping', () => {

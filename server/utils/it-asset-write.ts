@@ -3,7 +3,7 @@ import type { PoolConnection, RowDataPacket } from 'mysql2/promise'
 import { getAuthSession, hasPermission, type AuthSession } from './auth'
 import { getMysqlPool, mysqlQueryOptions } from './mysql'
 import { apiError, apiSuccess, errorMessage } from './response'
-import { formatItAssetNoFromSeq } from './it-asset-read'
+import { formatItAssetNoFromSeq, normalizeItAssetDept } from './it-asset-read'
 import { parseItAssetImportBuffer, type ItAssetImportParseError } from './it-asset-excel'
 import {
   affectedRows,
@@ -124,6 +124,8 @@ async function resolveWxUserMatch(
       if (!useDept) useDept = nullableLimitedText(rows[0].dept, 100)
     }
   }
+
+  useDept = nullableLimitedText(normalizeItAssetDept(useDept), 100)
 
   return { userUserid, userName, useDept }
 }
@@ -461,7 +463,7 @@ export async function importItAssets(event: H3Event) {
       const wxMatches = row.userName ? wxByName.get(row.userName) : undefined
       const uniqueWx = wxMatches && wxMatches.length === 1 ? wxMatches[0] : null
       const resolvedUserid = uniqueWx ? uniqueWx.userid.slice(0, 64) : null
-      const resolvedDept = row.useDept || (uniqueWx?.dept ? uniqueWx.dept.slice(0, 100) : '')
+      const resolvedDept = normalizeItAssetDept(row.useDept || uniqueWx?.dept || '').slice(0, 100)
 
       if (row.assetNo && existingByNo.has(row.assetNo)) {
         const targetId = existingByNo.get(row.assetNo)!

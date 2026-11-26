@@ -2,7 +2,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { getQuery, readBody, setResponseHeader, type H3Event } from 'h3'
 import type { Pool, RowDataPacket } from 'mysql2/promise'
-import * as XLSX from 'xlsx/xlsx.mjs'
+import { getXlsxSync } from './lazy-deps'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { mysqlQueryOptions } from './mysql'
 import { getNitroServerConfig } from './runtime'
@@ -115,6 +115,7 @@ function sendPicExcel(event: H3Event, kind: 'pic' | 'pic-select', rows: RowDataP
     )
   })
 
+  const XLSX = getXlsxSync()
   const worksheet = XLSX.utils.json_to_sheet(outputRows, {
     header: schema.columns.map(([label]) => label),
   })
@@ -501,6 +502,7 @@ function sendExcel(event: H3Event, kind: ExportKind, rows: RowDataPacket[] | Arr
     : camelizeRows<Record<string, unknown>>(rows).map((row) => Object.fromEntries(
       schema.columns.map(([label, field]) => [label, row[field] ?? '']),
     ))
+  const XLSX = getXlsxSync()
   const worksheet = XLSX.utils.json_to_sheet(outputRows, {
     header: schema.columns.map(([label]) => label),
   })

@@ -1,9 +1,11 @@
 import { runMoCloseOnce } from '../utils/production-order-close'
+import { skipHeavySchedulerInDev } from '../utils/nitro-jobs/dev-guard'
 
 type State = { running: boolean, timer?: ReturnType<typeof setTimeout>, interval?: ReturnType<typeof setInterval> }
 const g = globalThis as typeof globalThis & { __ctkMoClose102?: State }
 
 export default defineNitroPlugin((nitro) => {
+  if (skipHeavySchedulerInDev('MoClose102')) return
   // 默认关闭：env NUXT_MO_CLOSE_ENABLED=1 或 sys_config kingdee.moAutoClose=1 才跑，且只dry-run
   const envOn = ['1', 'true', 'yes', 'on'].includes(String(process.env.NUXT_MO_CLOSE_ENABLED || '').toLowerCase())
   const intervalMs = Number(process.env.NUXT_MO_CLOSE_INTERVAL_MS || 24 * 60 * 60 * 1000)

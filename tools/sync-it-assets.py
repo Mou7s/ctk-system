@@ -145,7 +145,9 @@ GROUP_DEPT_MAP = {
     "塑封部（只能使用企业微信和邮箱）": "塑封部",
     "玻封部（只能使用企业微信和邮箱）": "玻封部",
     "研发中心工程部": "研发中心",
-    "国际部": "国际一部",
+    "国际部": "国际销售部",
+    "国际一部": "国际销售部",
+    "国际二部": "国际销售部",
     "国内部": "国内销售部",
     "跟单组": "国内跟单组",
     "允许使用搜索网站": "产品应用",
@@ -257,14 +259,28 @@ def format_disk_summary(sizes: list[tuple[int, str]], types: list[tuple[int, str
     return " + ".join(parts)[:64]
 
 
+DEPT_UNIFY_MAP = {
+    "国际部": "国际销售部",
+    "国际一部": "国际销售部",
+    "国际二部": "国际销售部",
+}
+
+
+def normalize_dept(dept_name: Any) -> str:
+    raw = str(dept_name or "").strip()
+    if not raw:
+        return ""
+    return DEPT_UNIFY_MAP.get(raw, raw)[:100]
+
+
 def clean_dept(group_name: str, parent_name: str = "") -> str:
     raw = str(group_name or "").strip()
     if raw in GROUP_DEPT_MAP:
-        return GROUP_DEPT_MAP[raw]
+        return normalize_dept(GROUP_DEPT_MAP[raw])
     cleaned = re.sub(r"[（(][^）)]*只能使用[^）)]*[）)]", "", raw).strip()
     if not cleaned and parent_name:
         return clean_dept(parent_name, "")
-    return cleaned[:100]
+    return normalize_dept(cleaned)
 
 
 NON_PERSON_LABELS = {
@@ -725,7 +741,7 @@ def build_asset_records(
             user_userid = str(emp["userid"])
             user_name = str(emp["name"])
             if emp.get("dept"):
-                use_dept = str(emp["dept"]).strip()
+                use_dept = normalize_dept(emp["dept"])
             stats["wx_matched"] += 1
         elif person_cand:
             user_name = person_cand
@@ -758,16 +774,6 @@ def build_asset_records(
         else:
             asset_name = "办公台式机"
 
-        source_tag = "绿盾+防火墙" if any(m in arps or m in lease_by_mac for m in all_macs) else "绿盾"
-        remark_parts = [f"主机名: {comp['name']}" if comp.get("name") else ""]
-        if raw_nick and raw_nick != user_name and raw_nick != asset_name:
-            remark_parts.append(f"绿盾备注: {raw_nick}")
-        remark_parts.append(f"绿盾ID: {comp['id']}")
-        if comp.get("_lot"):
-            remark_parts.append(f"最近在线: {comp['_lot'][:10]}")
-        remark_parts.append(f"来源: {source_tag}")
-        remark = " | ".join(p for p in remark_parts if p)[:500]
-
         records.append(
             {
                 "asset_name": asset_name[:120],
@@ -786,7 +792,8 @@ def build_asset_records(
                 "os_version": os_version,
                 "ip_address": live_ip[:64],
                 "mac_address": mac,
-                "remark": remark,
+                "lvdun_id": int(comp["id"]) if comp.get("id") else None,
+                "remark": "",
                 "_source": "lvdun",
             }
         )
@@ -815,14 +822,14 @@ def build_asset_records(
             if user_name:
                 emp = wx_active_by_name[user_name][0]
                 user_userid = emp["userid"]
-                use_dept = emp.get("dept", "")
+                use_dept = normalize_dept(emp.get("dept", ""))
             elif hostname:
                 # Try exact userid match (case-insensitive)
                 for emp in wx_employees:
                     if emp.get("status") == "active" and str(emp.get("userid", "")).lower() == hostname.lower():
                         user_userid = emp["userid"]
                         user_name = emp["name"]
-                        use_dept = emp.get("dept", "")
+                        use_dept = normalize_dept(emp.get("dept", ""))
                         break
 
             known_macs.add(mac)
@@ -910,7 +917,7 @@ def sync_to_mysql(records: list[dict[str, Any]], apply: bool) -> dict[str, int]:
     unchanged = 0
     try:
         with conn.cursor(pymysql.cursors.DictCursor) as cur:
-            cur.execute("SELECT id, asset_no, mac_address, ip_address, use_dept, user_userid, user_name, cpu_spec, memory_spec, disk_spec, os_version, brand, model, serial_no FROM tk_it_asset")
+            cur.execute("SELECT id, asset_no, mac_address, ip_address, lvdun_id, use_dept, user_userid, user_name, cpu_spec, memory_spec, disk_spec, os_version, brand, model, serial_no FROM tk_it_asset")
             existing_rows = cur.fetchall()
             by_mac: dict[str, dict[str, Any]] = {}
             by_ip: dict[str, dict[str, Any]] = {}
@@ -932,7 +939,7 @@ def sync_to_mysql(records: list[dict[str, Any]], apply: bool) -> dict[str, int]:
                     sets: list[str] = []
                     params: list[Any] = []
                     # Refresh live network & hardware fields if incoming value is non-empty and changed
-                    for col in ("ip_address", "mac_address", "brand", "model", "serial_no", "cpu_spec", "memory_spec", "disk_spec", "os_version"):
+                    for col in ("ip_address", "mac_address", "lvdun_id", "brand", "model", "serial_no", "cpu_spec", "memory_spec", "disk_spec", "os_version"):
                         new_val = rec.get(col) or None
                         old_val = match.get(col) or None
                         if new_val and new_val != old_val:
@@ -966,12 +973,12 @@ def sync_to_mysql(records: list[dict[str, Any]], apply: bool) -> dict[str, int]:
                             INSERT INTO tk_it_asset (
                                 asset_no, asset_name, device_type, brand, model, serial_no,
                                 use_dept, user_userid, user_name, location, status,
-                                cpu_spec, memory_spec, disk_spec, os_version, ip_address, mac_address,
+                                cpu_spec, memory_spec, disk_spec, os_version, ip_address, mac_address, lvdun_id,
                                 remark, created_by_name, updated_by_name
                             ) VALUES (
                                 %s, %s, %s, %s, %s, %s,
                                 %s, %s, %s, %s, %s,
-                                %s, %s, %s, %s, %s, %s,
+                                %s, %s, %s, %s, %s, %s, %s,
                                 %s, %s, %s
                             )
                             """,
@@ -993,6 +1000,7 @@ def sync_to_mysql(records: list[dict[str, Any]], apply: bool) -> dict[str, int]:
                                 rec["os_version"] or None,
                                 rec["ip_address"] or None,
                                 rec["mac_address"] or None,
+                                rec.get("lvdun_id") or None,
                                 rec["remark"] or None,
                                 OPERATOR_NAME,
                                 OPERATOR_NAME,

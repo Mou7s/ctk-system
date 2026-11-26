@@ -229,15 +229,6 @@
               </UBadge>
             </template>
 
-            <template #printCount-cell="{ row }">
-              <div class="flex flex-col">
-                <UBadge v-if="Number(row.original.printCount) > 0" color="success" variant="subtle" size="xs" class="w-fit">
-                  已打 {{ row.original.printCount }} 次
-                </UBadge>
-                <span v-else class="text-[11px] text-gray-400">未打印</span>
-              </div>
-            </template>
-
             <template #actions-cell="{ row }">
               <div class="inline-flex items-center justify-end gap-1" @click.stop>
                 <UTooltip text="预览并打印 70×50mm 标签">
@@ -830,9 +821,6 @@
                     <UIcon name="i-lucide-arrow-right" class="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     <span class="font-semibold text-blue-700 dark:text-blue-300">{{ item.newUserName || '未分配' }}（{{ item.newUseDept || '—' }}）</span>
                   </div>
-                  <UBadge v-if="item.printCount > 0" color="warning" variant="subtle" size="xs" class="shrink-0">
-                    已打标·需重打
-                  </UBadge>
                 </label>
               </div>
             </div>
@@ -964,7 +952,6 @@ import {
   getItAssetSummary,
   importItAssets,
   listItAssets,
-  markItAssetsPrinted,
   previewItAssetLvDunSync,
   updateItAsset,
 } from '@/api/tk_custom/itAsset'
@@ -992,8 +979,6 @@ const summary = ref({
   idle: 0,
   repair: 0,
   scrapped: 0,
-  printedCount: 0,
-  unprintedCount: 0,
 })
 
 const deptOptions = ref([])
@@ -1056,7 +1041,6 @@ const summaryPills = computed(() => [
   { key: 'idle', label: '闲置', count: summary.value.idle, filterStatus: 'idle', activeColor: 'info' },
   { key: 'repair', label: '维修中', count: summary.value.repair, filterStatus: 'repair', activeColor: 'warning' },
   { key: 'scrapped', label: '已报废', count: summary.value.scrapped, filterStatus: 'scrapped', activeColor: 'neutral' },
-  { key: 'printed', label: '已打印', count: summary.value.printedCount },
 ])
 
 const deviceTypeFilterItems = computed(() => [
@@ -1101,7 +1085,6 @@ const assetColumns = [
   { accessorKey: 'location', header: '存放地点' },
   { accessorKey: 'purchaseDate', header: '购置日期' },
   { accessorKey: 'status', header: '状态' },
-  { accessorKey: 'printCount', header: '标签状态' },
   { id: 'actions', header: '操作' },
 ]
 
@@ -1281,14 +1264,6 @@ async function printAssets(items) {
   popup.document.open()
   popup.document.write(html)
   popup.document.close()
-
-  const ids = items.map((item) => item.id).filter(Boolean)
-  if (ids.length) {
-    try {
-      await markItAssetsPrinted(ids)
-      await Promise.all([getList({ silent: true }), fetchSummary()])
-    } catch {}
-  }
 }
 
 function handlePrintSingle(asset) {

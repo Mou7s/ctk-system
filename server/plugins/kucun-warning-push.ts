@@ -1,5 +1,6 @@
 import { isNitroJobEnabled } from '../utils/nitro-jobs/types'
 import { NITRO_JOB_MAP } from '../utils/nitro-jobs/registry'
+import { skipHeavySchedulerInDev } from '../utils/nitro-jobs/dev-guard'
 import { errorMessage } from '../utils/response'
 import { readWarningPushTime } from '../utils/nitro-jobs/kucun-warning-send'
 import { shouldRunWarningPushAt, warningPushDateKey } from '../utils/nitro-jobs/kucun-warning-schedule'
@@ -27,6 +28,7 @@ function todayKey(): string {
 }
 
 export default defineNitroPlugin((nitroApp) => {
+  if (skipHeavySchedulerInDev('NitroKucunWarningPush')) return
   const globalState = globalThis as SchedulerGlobal
   if (globalState.__ctkKucunWarningPush) return
   const state: SchedulerState = { lastRunDate: '', running: false }
