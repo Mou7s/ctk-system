@@ -70,42 +70,46 @@
                 <p class="title">时间表达式</p>
                 <table>
                     <thead>
-                        <th v-for="item of tabTitles" :key="item">{{item}}</th>
-                        <th>Cron 表达式</th>
+                        <tr>
+                            <th v-for="item of tabTitles" :key="item">{{item}}</th>
+                            <th>Cron 表达式</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        <td>
-                            <span v-if="crontabValueObj.second.length < 10">{{crontabValueObj.second}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.second" placement="top"><span>{{crontabValueObj.second}}</span></UTooltip>
-                        </td>
-                        <td>
-                            <span v-if="crontabValueObj.min.length < 10">{{crontabValueObj.min}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.min" placement="top"><span>{{crontabValueObj.min}}</span></UTooltip>
-                        </td>
-                        <td>
-                            <span v-if="crontabValueObj.hour.length < 10">{{crontabValueObj.hour}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.hour" placement="top"><span>{{crontabValueObj.hour}}</span></UTooltip>
-                        </td>
-                        <td>
-                            <span v-if="crontabValueObj.day.length < 10">{{crontabValueObj.day}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.day" placement="top"><span>{{crontabValueObj.day}}</span></UTooltip>
-                        </td>
-                        <td>
-                            <span v-if="crontabValueObj.month.length < 10">{{crontabValueObj.month}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.month" placement="top"><span>{{crontabValueObj.month}}</span></UTooltip>
-                        </td>
-                        <td>
-                            <span v-if="crontabValueObj.week.length < 10">{{crontabValueObj.week}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.week" placement="top"><span>{{crontabValueObj.week}}</span></UTooltip>
-                        </td>
-                        <td>
-                            <span v-if="crontabValueObj.year.length < 10">{{crontabValueObj.year}}</span>
-                            <UTooltip  v-else :text="crontabValueObj.year" placement="top"><span>{{crontabValueObj.year}}</span></UTooltip>
-                        </td>
-                        <td class="result">
-                            <span v-if="crontabValueString.length < 90">{{crontabValueString}}</span>
-                            <UTooltip  v-else :text="crontabValueString" placement="top"><span>{{crontabValueString}}</span></UTooltip>
-                        </td>
+                        <tr>
+                            <td>
+                                <span v-if="crontabValueObj.second.length < 10">{{crontabValueObj.second}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.second" placement="top"><span>{{crontabValueObj.second}}</span></UTooltip>
+                            </td>
+                            <td>
+                                <span v-if="crontabValueObj.min.length < 10">{{crontabValueObj.min}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.min" placement="top"><span>{{crontabValueObj.min}}</span></UTooltip>
+                            </td>
+                            <td>
+                                <span v-if="crontabValueObj.hour.length < 10">{{crontabValueObj.hour}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.hour" placement="top"><span>{{crontabValueObj.hour}}</span></UTooltip>
+                            </td>
+                            <td>
+                                <span v-if="crontabValueObj.day.length < 10">{{crontabValueObj.day}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.day" placement="top"><span>{{crontabValueObj.day}}</span></UTooltip>
+                            </td>
+                            <td>
+                                <span v-if="crontabValueObj.month.length < 10">{{crontabValueObj.month}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.month" placement="top"><span>{{crontabValueObj.month}}</span></UTooltip>
+                            </td>
+                            <td>
+                                <span v-if="crontabValueObj.week.length < 10">{{crontabValueObj.week}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.week" placement="top"><span>{{crontabValueObj.week}}</span></UTooltip>
+                            </td>
+                            <td>
+                                <span v-if="crontabValueObj.year.length < 10">{{crontabValueObj.year}}</span>
+                                <UTooltip  v-else :text="crontabValueObj.year" placement="top"><span>{{crontabValueObj.year}}</span></UTooltip>
+                            </td>
+                            <td class="result">
+                                <span v-if="crontabValueString.length < 90">{{crontabValueString}}</span>
+                                <UTooltip  v-else :text="crontabValueString" placement="top"><span>{{crontabValueString}}</span></UTooltip>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

@@ -17,13 +17,16 @@
       :apply-on-close="true"
       :readonly="readonly"
       :row-headers="true"
-      :resize="true"
+      :resize="false"
       :can-move-columns="false"
       :filter="false"
       :exporting="false"
       :theme="'default'"
       :aria-label="'客户样品进度表格'"
+      @beforeeditstart="handleBeforeEditStart"
       @afteredit="handleAfterEdit"
+      @canceledit="handleEditEnd"
+      @closeedit="handleEditEnd"
       @beforecellfocus="handleCellFocus"
       @beforepaste="handleBeforePaste"
       @setrange="handleSetRange"
@@ -93,6 +96,12 @@ import { isQuotationGridClick } from './quotationGridEdit.js'
 import { isQuotationMultiCellPaste, normalizeQuotationClipboardText } from './quotationGridPaste.js'
 import { getSelectedRowIndexes as getSelectedRowIndexesFromState } from './quotationGridSelection.js'
 import { SampleProgressDateEditor, SampleProgressNumberEditor } from './sampleProgressGridEditors.js'
+import {
+  calculateSampleProgressColumnWidths,
+  getFieldWidthBounds,
+  resolveSampleProgressColumnWidth,
+  resolveSampleProgressDisplayText,
+} from './sampleProgressColumnWidth.js'
 
 const props = defineProps({
   rows: { type: Array, default: () => [] },
@@ -116,6 +125,8 @@ const filterSearch = ref('')
 const filterPanel = ref({ open: false, key: '', left: 0, top: 0 })
 const draftFilterValues = ref([])
 const activeFilters = ref({})
+const autoColumnWidths = ref({})
+const isEditingCell = ref(false)
 
 const stateLabels = {
   saving: '保存中',
@@ -170,8 +181,11 @@ function renderLeafHeader(h, data) {
   const field = props.fields.find((item) => item.key === data?.prop)
   const label = field?.header || data?.name || ''
   const active = field ? isFilterActive(field.key) : false
-  return h('div', { class: 'sample-grid-header-content' }, [
-    h('span', { class: 'sample-grid-header-title' }, label),
+  return h('div', {
+    class: 'sample-grid-header-content',
+    'data-col-prop': field?.key || data?.prop || '',
+  }, [
+    h('span', { class: 'sample-grid-header-title', title: label }, label),
     h('button', {
       type: 'button',
       class: `sample-grid-filter-button${active ? ' is-active' : ''}`,
@@ -314,6 +328,10 @@ function handleDocumentMouseDown(event) {
 }
 
 function buildLeafColumn(field) {
+  const { minSize, maxSize } = getFieldWidthBounds(field)
+  const resolvedSize = resolveSampleProgressColumnWidth(field, {
+    autoWidths: autoColumnWidths.value,
+  })
   const baseItems = (field.items || []).map((item) => (
     item && typeof item === 'object'
       ? item
@@ -328,7 +346,9 @@ function buildLeafColumn(field) {
   return {
     prop: field.key,
     name: field.header,
-    size: field.size,
+    size: resolvedSize,
+    minSize,
+    maxSize,
     columnTemplate: (h, data) => renderLeafHeader(h, data),
     readonly: ({ model }) => props.readonly || !props.canEditRow(model),
     ...(field.type === 'date' ? { editor: SampleProgressDateEditor } : {}),
@@ -343,7 +363,13 @@ function buildLeafColumn(field) {
           appendTo: 'body',
         }
       : {}),
-    ...(field.key === 'partNo' ? { cellProperties: () => ({ class: 'font-mono' }) } : {}),
+    cellProperties: ({ model }) => {
+      const displayText = resolveSampleProgressDisplayText(field, model?.[field.key])
+      return {
+        ...(field.key === 'partNo' ? { class: 'font-mono' } : {}),
+        ...(displayText ? { title: displayText } : {}),
+      }
+    },
   }
 }
 
@@ -377,7 +403,9 @@ const columns = computed(() => {
   result.push({
     prop: '__localState',
     name: '保存状态 / 操作',
-    size: 190,
+    size: 120,
+    minSize: 105,
+    maxSize: 160,
     readonly: true,
     pin: 'colPinEnd',
     cellTemplate: renderActions,
@@ -394,8 +422,59 @@ function flattenLeafColumns(cols = columns.value) {
   return out
 }
 
+function isEditorOpen() {
+  return isEditingCell.value || Boolean(getGridElement()?.querySelector?.('revogr-edit'))
+}
+
+function getGridMeasureOptions() {
+  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') return {}
+  const gridEl = getGridElement()
+  if (!gridEl) return {}
+  const cellEl = gridEl.querySelector?.('revogr-data .rgCell') || gridEl
+  const headerEl = gridEl.querySelector?.('revogr-header .sample-grid-header-title') || cellEl
+  const cellStyle = window.getComputedStyle(cellEl)
+  const headerStyle = window.getComputedStyle(headerEl)
+  const cellFontSize = parseFloat(cellStyle.fontSize) || 14
+  const headerFontSize = parseFloat(headerStyle.fontSize) || cellFontSize
+  const cellFont = `${cellStyle.fontWeight || '400'} ${cellFontSize}px ${cellStyle.fontFamily || 'sans-serif'}`
+  const headerFont = `${headerStyle.fontWeight || '400'} ${headerFontSize}px ${headerStyle.fontFamily || 'sans-serif'}`
+  const monoFont = `${cellStyle.fontWeight || '400'} ${cellFontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`
+  const padLeft = parseFloat(cellStyle.paddingLeft) || 0
+  const padRight = parseFloat(cellStyle.paddingRight) || 0
+  return {
+    cellFont,
+    cellFontSize,
+    headerFont,
+    headerFontSize,
+    monoFont,
+    cellPaddingX: padLeft + padRight,
+  }
+}
+
+function syncAutoColumnWidthsFromRows() {
+  if (!props.rows.length || isEditorOpen()) return
+  const nextWidths = calculateSampleProgressColumnWidths(
+    props.fields,
+    props.rows,
+    getGridMeasureOptions(),
+  )
+  const current = autoColumnWidths.value
+  const keys = Object.keys(nextWidths)
+  if (keys.length === Object.keys(current).length && keys.every((key) => current[key] === nextWidths[key])) {
+    return
+  }
+  autoColumnWidths.value = nextWidths
+}
+
 onMounted(async () => {
   document.addEventListener('mousedown', handleDocumentMouseDown)
+  try {
+    window.localStorage?.removeItem?.('ctk:sampleProgress:colWidths:v1')
+  } catch {
+    // ignore storage cleanup errors
+  }
+  syncAutoColumnWidthsFromRows()
+  nextTick(() => syncAutoColumnWidthsFromRows())
   try {
     const { default: SelectTypePlugin } = await import('@revolist/revogrid-column-select')
     columnTypes.value = { select: new SelectTypePlugin() }
@@ -408,6 +487,22 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleDocumentMouseDown)
 })
+
+watch(
+  () => props.rows,
+  (rows) => {
+    if (rows?.length) {
+      syncAutoColumnWidthsFromRows()
+      nextTick(() => {
+        syncAutoColumnWidthsFromRows()
+        getGridElement()?.refresh?.('all')
+      })
+      return
+    }
+    nextTick(() => getGridElement()?.refresh?.('all'))
+  },
+  { deep: false },
+)
 
 watch(
   () => props.rows,
@@ -525,7 +620,16 @@ async function handleBeforePaste(event) {
   await emitMatrixPaste({ event, text, detail, clipboardEvent: detail.event })
 }
 
+function handleBeforeEditStart() {
+  isEditingCell.value = true
+}
+
+function handleEditEnd() {
+  isEditingCell.value = false
+}
+
 function handleAfterEdit(event) {
+  isEditingCell.value = false
   const detail = event?.detail || {}
   const rowIndex = Number(detail.rowIndex)
   const column = props.fields.find((item) => item.key === detail.prop) || {}
@@ -564,7 +668,12 @@ function clearAllFilters() {
   emitFilterCount()
 }
 
-defineExpose({ getSelectedRowIndexes, clearSelectedRange, getActiveFilterCount, clearAllFilters })
+defineExpose({
+  getSelectedRowIndexes,
+  clearSelectedRange,
+  getActiveFilterCount,
+  clearAllFilters,
+})
 </script>
 
 <style scoped>
@@ -574,6 +683,13 @@ defineExpose({ getSelectedRowIndexes, clearSelectedRange, getActiveFilterCount, 
   width: 100%;
   min-height: 0;
   font-size: 12px;
+  --revo-grid-header-height: 40px;
+  --rg-theme-header-height: 40px;
+}
+
+:deep(revogr-header .header-rgRow.group) {
+  height: 28px;
+  line-height: 28px;
 }
 
 :deep(.sample-grid-band) {
@@ -591,35 +707,57 @@ defineExpose({ getSelectedRowIndexes, clearSelectedRange, getActiveFilterCount, 
 }
 
 :deep(.sample-grid-header-content) {
+  position: relative;
   display: flex;
   min-width: 0;
   width: 100%;
   height: 100%;
   align-items: center;
-  gap: 4px;
-  padding: 0 4px 0 8px;
+  justify-content: center;
+  padding: 2px 6px;
+  line-height: 1.25;
 }
 
 :deep(.sample-grid-header-title) {
+  display: -webkit-box;
   min-width: 0;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25;
+  text-align: center;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 :deep(.sample-grid-filter-button) {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  z-index: 2;
   display: inline-flex;
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 3px;
   color: #6b7280;
-  background: transparent;
+  background: color-mix(in srgb, var(--rg-theme-header-bg, #f8fafc) 92%, transparent);
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+:deep(.rgHeaderCell:hover .sample-grid-filter-button),
+:deep(.sample-grid-header-content:hover .sample-grid-filter-button),
+:deep(.sample-grid-filter-button:focus-visible),
+:deep(.sample-grid-filter-button.is-active) {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 :deep(.sample-grid-filter-button:hover),
